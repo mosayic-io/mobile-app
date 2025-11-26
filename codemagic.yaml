@@ -1,0 +1,115 @@
+workflows:
+    # Android workflow (commented out - uncomment and configure when needed)
+    # react-native-android:
+    #     name: React Native Android
+    #     max_build_duration: 120
+    #     instance_type: mac_mini_m2
+    #     environment:
+    #       android_signing:
+    #         - keystore_reference
+    #       groups:
+    #         - google_play # <-- (Includes GCLOUD_SERVICE_ACCOUNT_CREDENTIALS)
+    #       vars:
+    #         PACKAGE_NAME: "com.yourcompany.yourappname" # <-- Your Android package name
+    #       node: v19.7.0
+    #     scripts:
+    #         - name: Install npm dependencies
+    #           script: |
+    #             npm install
+    #         - name: Set Android SDK location
+    #           script: |
+    #             echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+    #         - name: Build Android release
+    #           script: |
+    #             LATEST_GOOGLE_PLAY_BUILD_NUMBER=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME")
+    #             if [ -z "$LATEST_GOOGLE_PLAY_BUILD_NUMBER" ]; then
+    #               UPDATED_BUILD_NUMBER=$BUILD_NUMBER
+    #             else
+    #               UPDATED_BUILD_NUMBER=$(($LATEST_GOOGLE_PLAY_BUILD_NUMBER + 1))
+    #             fi
+    #             cd android
+    #             ./gradlew bundleRelease \
+    #               -PversionCode=$UPDATED_BUILD_NUMBER \
+    #               -PversionName=1.0.$UPDATED_BUILD_NUMBER
+    #     artifacts:
+    #         - android/app/build/outputs/**/*.aab
+    #     publishing:
+    #       email:
+    #         recipients:
+    #           - your-email@example.com
+    #         notify:
+    #           success: true
+    #           failure: false
+    #       google_play:
+    #         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    #         track: alpha
+
+    react-native-ios:
+        name: React Native iOS
+        max_build_duration: 120
+        instance_type: mac_mini_m2
+        integrations:
+          app_store_connect: "YOUR_APP_STORE_CONNECT_KEY_NAME" # <-- Your App Store Connect API key name in Codemagic
+        environment:
+          ios_signing:
+            distribution_type: app_store
+            bundle_identifier: com.yourcompany.yourappname # <-- Your iOS bundle identifier
+          vars:
+            XCODE_WORKSPACE: "YourAppName.xcworkspace" # <-- Your Xcode workspace name
+            XCODE_SCHEME: "YourAppName" # <-- Your Xcode scheme name
+            APP_ID: 000000000 # <-- Your App Store Connect App ID (found in App Store Connect > App > General > App Information)
+            APP_ENV: "production"
+            EXPO_PUBLIC_SUPABASE_URL: "YOUR_PRODUCTION_SUPABASE_URL"
+            EXPO_PUBLIC_SUPABASE_PUB_KEY: "YOUR_PRODUCTION_SUPABASE_ANON_KEY"
+          node: v19.7.0
+          xcode: 16.2
+          cocoapods: default
+        scripts:
+            - name: Install npm dependencies
+              script: |
+                npm install --ignore-scripts
+            - name: Sync native configuration from app.json
+              script: |
+                set -x
+                pwd
+                ls -la | grep -E "(ios|android)" || echo "No ios/android folders yet"
+                rm -rf ios android
+                npx expo prebuild --no-install --clean
+                echo "=== Prebuild completed - checking Expo.plist ==="
+                cat ios/$XCODE_SCHEME/Supporting/Expo.plist | grep -A1 "EXUpdatesEnabled"
+                set +x
+            - name: Install CocoaPods dependencies
+              script: |
+                cd ios && pod install
+            - name: Set up code signing settings on Xcode project
+              script: |
+                xcode-project use-profiles --warn-only
+
+            - name: Increment build number
+              script: |
+                cd $CM_BUILD_DIR/ios
+                LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_ID")
+                agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+            - name: Build ipa for distribution
+              script: |
+                xcode-project build-ipa \
+                  --workspace "$CM_BUILD_DIR/ios/$XCODE_WORKSPACE" \
+                  --scheme "$XCODE_SCHEME"
+        artifacts:
+            - build/ios/ipa/*.ipa
+            - /tmp/xcodebuild_logs/*.log
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+        publishing:
+          email:
+            recipients:
+              - your-email@example.com # <-- Your email for build notifications
+            notify:
+              success: true
+              failure: false
+          app_store_connect:
+            auth: integration
+            submit_to_testflight: true
+            beta_groups:
+              - Beta testers # <-- Your TestFlight beta group name
+            submit_to_app_store: false
