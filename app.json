@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "YourAppName",
-    "slug": "your-app-name",
+    "slug": "your-project-id-slug",
     "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
@@ -38,7 +38,7 @@
         {
           "image": "./assets/images/splash.png",
           "imageWidth": 200,
-          "resizeMode": "contain",
+          "resizeMode": "cover",
           "backgroundColor": "#ffffff",
           "dark": {
             "backgroundColor": "#000000"
@@ -60,10 +60,10 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "545282e5-6f7d-4421-a5fc-13691b0a2dae"
       }
     },
-    "owner": "your-expo-username",
+    "owner": "johnckealy",
     "runtimeVersion": {
       "policy": "appVersion"
     },
