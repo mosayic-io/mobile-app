@@ -1,7 +1,7 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'expo-router'
 import { useCallback, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Alert,
   KeyboardAvoidingView,
@@ -11,13 +11,13 @@ import {
   View,
 } from 'react-native'
 
-import { Button, Text } from '@/src/components/ui'
+import { ScreenErrorBoundary } from '@/src/components/error'
 import { FormInput } from '@/src/components/forms'
+import { Button, Text } from '@/src/components/ui'
+import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
 import { spacing, type Colors } from '@/src/lib/theme'
 import { signInSchema, type SignInFormData } from '@/src/lib/validations/auth'
-import { useAuthStore } from '@/src/features/auth'
-import { ScreenErrorBoundary } from '@/src/components/error'
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
