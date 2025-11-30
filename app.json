@@ -57,12 +57,6 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "545282e5-6f7d-4421-a5fc-13691b0a2dae"
-      }
-    },
     "owner": "johnckealy",
     "runtimeVersion": {
       "policy": "appVersion"
