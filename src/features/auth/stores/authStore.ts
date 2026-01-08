@@ -5,6 +5,7 @@ import { Platform } from 'react-native'
 import { supabase } from '@/src/lib/supabase'
 import { queryClient } from '@/src/lib/queryClient'
 import { useNotificationStore } from '@/src/stores/notificationStore'
+import { deleteAuthUser } from '@/src/lib/api'
 
 type AuthState = {
   session: Session | null
@@ -21,6 +22,7 @@ type AuthActions = {
   signInWithApple: () => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  deleteAccount: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   updatePassword: (password: string) => Promise<void>
   setupAuthListener: () => () => void
@@ -142,6 +144,40 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const userId = data.user?.id ?? data.session?.user.id ?? get().user?.id
       if (userId) {
+        const profileName =
+          response.data.user?.name ??
+          [response.data.user?.givenName, response.data.user?.familyName]
+            .filter(Boolean)
+            .join(' ')
+            .trim()
+        const normalizedName = profileName && profileName.length > 0 ? profileName : null
+        const profilePhoto = response.data.user?.photo ?? null
+        const profileEmail = response.data.user?.email ?? data.user?.email ?? null
+
+        try {
+          if (normalizedName || profilePhoto) {
+            await supabase.auth.updateUser({
+              data: {
+                full_name: normalizedName,
+                avatar_url: profilePhoto,
+              },
+            })
+          }
+
+          const profileUpdate: { id: string; display_name?: string | null; photo_url?: string | null; email?: string | null } =
+            { id: userId }
+
+          if (normalizedName) profileUpdate.display_name = normalizedName
+          if (profilePhoto) profileUpdate.photo_url = profilePhoto
+          if (profileEmail) profileUpdate.email = profileEmail
+
+          if (Object.keys(profileUpdate).length > 1) {
+            await supabase.from('users').upsert(profileUpdate, { onConflict: 'id' })
+          }
+        } catch (profileError) {
+          console.warn('Failed to update Google profile details:', profileError)
+        }
+
         await useNotificationStore.getState().registerAndSaveToken(userId)
       }
     } catch (error) {
@@ -245,6 +281,36 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       queryClient.clear()
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Sign out failed')
+      throw authError
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  deleteAccount: async () => {
+    set({ isLoading: true })
+
+    try {
+      const userId = get().user?.id
+
+      if (!userId) {
+        throw new Error('No authenticated user found')
+      }
+
+      await deleteAuthUser(userId)
+
+      try {
+        await supabase.auth.signOut()
+      } catch (signOutError) {
+        console.warn('Failed to sign out after account deletion:', signOutError)
+      }
+
+      useNotificationStore.getState().clearToken()
+      queryClient.clear()
+
+      set({ session: null, user: null })
+    } catch (error) {
+      const authError = error instanceof Error ? error : new Error('Account deletion failed')
       throw authError
     } finally {
       set({ isLoading: false })

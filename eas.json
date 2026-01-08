@@ -12,11 +12,14 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
       }
     },
     "preview": {
       "distribution": "internal",
-      "env": {},
+      "env": {
+      },
       "ios": {
         "simulator": false
       },
@@ -28,6 +31,7 @@
       "distribution": "store",
       "env": {
         "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.example.com",
         "EXPO_PUBLIC_SUPABASE_URL": "https://kgjylxntmeobvnihalgo.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUB_KEY": "sb_publishable_BaTEdj5SgU9OoT3VIurTaw_YZzKdkL3",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1044547510570-00eeg54r5orvacl9a8hafbvimjma58hs.apps.googleusercontent.com",

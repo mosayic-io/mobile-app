@@ -102,12 +102,15 @@ export async function registerForPushNotifications(): Promise<string | null> {
 }
 
 /**
- * Save the push token to the user's fcm_tokens column in Supabase
- * This stores the most recent token (schema defines fcm_tokens as text)
+ * Save the push token to the devices table in Supabase
+ * This stores a token per device for a user
  */
-export async function savePushTokenToUser(userId: string, token: string): Promise<void> {
+export async function savePushTokenToDevice(userId: string, token: string): Promise<void> {
   for (let attempt = 1; attempt <= TOKEN_SAVE_MAX_ATTEMPTS; attempt += 1) {
-    const { error } = await supabase.from('users').update({ fcm_tokens: token }).eq('id', userId)
+    const { error } = await supabase.from('devices').upsert(
+      { user_id: userId, fcm_token: token },
+      { onConflict: 'user_id,fcm_token' }
+    )
 
     if (!error) return
 
@@ -122,11 +125,15 @@ export async function savePushTokenToUser(userId: string, token: string): Promis
 }
 
 /**
- * Remove the push token from the user's fcm_tokens column in Supabase
+ * Remove the push token from the devices table in Supabase
  */
-export async function removePushTokenFromUser(userId: string): Promise<void> {
+export async function removePushTokenFromDevice(userId: string, token: string): Promise<void> {
   for (let attempt = 1; attempt <= TOKEN_SAVE_MAX_ATTEMPTS; attempt += 1) {
-    const { error } = await supabase.from('users').update({ fcm_tokens: null }).eq('id', userId)
+    const { error } = await supabase
+      .from('devices')
+      .delete()
+      .eq('user_id', userId)
+      .eq('fcm_token', token)
 
     if (!error) return
 

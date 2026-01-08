@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons'
 import Constants from 'expo-constants'
 import { useCallback, useMemo, useState } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { useRouter } from 'expo-router'
 
 import { Avatar, Button, Text } from '@/src/components/ui'
 import { useColors } from '@/src/hooks/useColors'
 import { spacing, borderRadius, type Colors, type ThemeMode } from '@/src/lib/theme'
 import { useAuthStore } from '@/src/features/auth'
+import { useUserProfile } from '@/src/features/profile'
 import { useThemeStore } from '@/src/stores/themeStore'
 import { ScreenErrorBoundary } from '@/src/components/error'
 
@@ -90,10 +92,12 @@ const createStyles = (colors: Colors) =>
 
 function ProfileScreen() {
   const { user, signOut, isLoading } = useAuthStore()
+  const router = useRouter()
   const { mode, setMode } = useThemeStore()
   const [showThemePicker, setShowThemePicker] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
+  const { data: profile } = useUserProfile(user?.id)
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -113,7 +117,7 @@ function ProfileScreen() {
     [setMode]
   )
 
-  const displayName = user?.email?.split('@')[0] || 'User'
+  const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'User'
 
   return (
     <ScrollView
@@ -135,6 +139,25 @@ function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => router.push('/(tabs)/edit-profile')}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+          accessibilityHint="Double tap to edit your profile settings"
+        >
+          <Ionicons
+            name="create-outline"
+            size={22}
+            color={colors.text}
+            style={styles.menuItemIcon}
+          />
+          <Text variant="body" style={styles.menuItemContent}>
+            Edit Profile
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.tertiary} />
+        </Pressable>
+
         <Pressable
           style={styles.menuItem}
           onPress={() => setShowThemePicker(!showThemePicker)}

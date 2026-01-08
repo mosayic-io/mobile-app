@@ -4,8 +4,8 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 
 import {
   registerForPushNotifications,
-  savePushTokenToUser,
-  removePushTokenFromUser,
+  savePushTokenToDevice,
+  removePushTokenFromDevice,
 } from '@/src/lib/notifications'
 
 type NotificationState = {
@@ -37,7 +37,7 @@ export const useNotificationStore = create<NotificationStore>()(
           const token = await registerForPushNotifications()
 
           if (token) {
-            await savePushTokenToUser(userId, token)
+            await savePushTokenToDevice(userId, token)
             set({ expoPushToken: token, isRegistering: false })
           } else {
             set({
@@ -62,7 +62,10 @@ export const useNotificationStore = create<NotificationStore>()(
 
       removeToken: async (userId: string) => {
         try {
-          await removePushTokenFromUser(userId)
+          const token = get().expoPushToken
+          if (token) {
+            await removePushTokenFromDevice(userId, token)
+          }
           set({ expoPushToken: null, error: null })
         } catch (error) {
           console.error('Failed to remove push token:', error)
