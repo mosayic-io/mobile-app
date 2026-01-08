@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="3120" viewBox="0 0 1440 3120">
+  <defs>
+    <!-- Soft blur for blobs -->
+    <filter id="blur24" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="24" />
+    </filter>
+
+    <!-- Subtle grain -->
+    <filter id="grain" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" />
+      <feColorMatrix type="matrix" values="
+        1 0 0 0 0
+        0 1 0 0 0
+        0 0 1 0 0
+        0 0 0 0.06 0"/>
+    </filter>
+
+    <!-- Background gradient (very subtle, light-first) -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7F4EF"/>
+      <stop offset="55%" stop-color="#F4F7FF"/>
+      <stop offset="100%" stop-color="#F7F4EF"/>
+    </linearGradient>
+
+    <!-- Accent gradients for blobs -->
+    <radialGradient id="blueGlow" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#2563EB" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#93C5FD" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="warmGlow" cx="60%" cy="55%" r="70%">
+      <stop offset="0%" stop-color="#FDBA74" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#FED7AA" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#FDBA74" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Thin contour line style -->
+    <style>
+      .contour { fill: none; stroke: #2563EB; stroke-opacity: 0.10; stroke-width: 2; }
+      .contour2 { fill: none; stroke: #0F172A; stroke-opacity: 0.06; stroke-width: 2; }
+      .label { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    </style>
+  </defs>
+
+  <!-- Base -->
+  <rect width="1440" height="3120" fill="url(#bg)"/>
+
+  <!-- Big soft blobs -->
+  <g filter="url(#blur24)">
+    <circle cx="340" cy="520" r="520" fill="url(#blueGlow)"/>
+    <circle cx="1180" cy="980" r="620" fill="url(#warmGlow)"/>
+    <circle cx="980" cy="2380" r="720" fill="url(#blueGlow)"/>
+    <circle cx="260" cy="2520" r="520" fill="url(#warmGlow)"/>
+  </g>
+
+  <!-- Topographic-ish contour lines (handy for “designed” feel) -->
+  <g>
+    <!-- Top cluster -->
+    <path class="contour" d="M-40,620 C240,420 520,420 800,620 C1080,820 1320,820 1520,620"/>
+    <path class="contour2" d="M-40,700 C250,520 530,520 820,700 C1110,880 1320,880 1520,700"/>
+    <path class="contour" d="M-40,780 C260,620 540,620 840,780 C1140,940 1320,940 1520,780"/>
+
+    <!-- Mid cluster -->
+    <path class="contour2" d="M-60,1480 C260,1280 560,1280 880,1480 C1200,1680 1380,1680 1560,1480"/>
+    <path class="contour" d="M-60,1560 C260,1360 560,1360 880,1560 C1200,1760 1380,1760 1560,1560"/>
+    <path class="contour2" d="M-60,1640 C260,1440 560,1440 880,1640 C1200,1840 1380,1840 1560,1640"/>
+
+    <!-- Bottom cluster -->
+    <path class="contour" d="M-40,2500 C240,2300 540,2300 820,2500 C1100,2700 1320,2700 1520,2500"/>
+    <path class="contour2" d="M-40,2580 C250,2400 560,2400 850,2580 C1140,2760 1320,2760 1520,2580"/>
+    <path class="contour" d="M-40,2660 C260,2500 580,2500 860,2660 C1140,2820 1320,2820 1520,2660"/>
+  </g>
+
+  <!-- Grain overlay -->
+  <rect width="1440" height="3120" filter="url(#grain)" opacity="1"/>
+
+  <!-- Optional tiny “template” hint (remove anytime) -->
+  <g opacity="0.22">
+    <text x="80" y="3030" class="label" font-size="28" fill="#0F172A">
+      Replace background.svg to rebrand ✨
+    </text>
+  </g>
+</svg>

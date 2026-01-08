@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Session, User } from '@supabase/supabase-js'
+import { Platform } from 'react-native'
 
 import { supabase } from '@/src/lib/supabase'
 import { queryClient } from '@/src/lib/queryClient'
@@ -16,6 +17,8 @@ type AuthState = {
 type AuthActions = {
   initialize: () => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
+  signInWithApple: () => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
@@ -100,6 +103,104 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Sign in failed')
+      throw authError
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  signInWithGoogle: async () => {
+    set({ isLoading: true })
+
+    try {
+      // Dynamically import GoogleSignin to avoid crashing in Expo Go
+      const { GoogleSignin } = await import('@react-native-google-signin/google-signin')
+
+      // Configure GoogleSignin (safe to call multiple times)
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        iosClientId: Platform.OS === 'ios' ? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID : undefined,
+      })
+
+      // Check for Play Services (Android) or just proceed (iOS)
+      await GoogleSignin.hasPlayServices()
+
+      // Trigger the native Google Sign-In flow
+      const response = await GoogleSignin.signIn()
+
+      if (!response.data?.idToken) {
+        throw new Error('No ID token received from Google')
+      }
+
+      // Exchange the Google ID token for a Supabase session
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: response.data.idToken,
+      })
+
+      if (error) throw error
+
+      const userId = data.user?.id ?? data.session?.user.id ?? get().user?.id
+      if (userId) {
+        await useNotificationStore.getState().registerAndSaveToken(userId)
+      }
+    } catch (error) {
+      const authError = error instanceof Error ? error : new Error('Google sign in failed')
+      throw authError
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  signInWithApple: async () => {
+    if (Platform.OS !== 'ios') {
+      throw new Error('Apple Sign-In is only available on iOS')
+    }
+
+    set({ isLoading: true })
+
+    try {
+      const AppleAuthentication = await import('expo-apple-authentication')
+
+      // Check if Apple Sign-In is available on this device
+      const isAvailable = await AppleAuthentication.isAvailableAsync()
+      if (!isAvailable) {
+        throw new Error('Apple Sign-In is not available on this device')
+      }
+
+      // Request credentials from Apple
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        ],
+      })
+
+      if (!credential.identityToken) {
+        throw new Error('No identity token received from Apple')
+      }
+
+      // Exchange the Apple identity token for a Supabase session
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      })
+
+      if (error) throw error
+
+      const userId = data.user?.id ?? data.session?.user.id ?? get().user?.id
+      if (userId) {
+        await useNotificationStore.getState().registerAndSaveToken(userId)
+      }
+    } catch (error) {
+      // Handle user cancellation gracefully
+      if (error && typeof error === 'object' && 'code' in error) {
+        const appleError = error as { code: string }
+        if (appleError.code === 'ERR_REQUEST_CANCELED') {
+          throw new Error('Sign in was cancelled')
+        }
+      }
+      const authError = error instanceof Error ? error : new Error('Apple sign in failed')
       throw authError
     } finally {
       set({ isLoading: false })

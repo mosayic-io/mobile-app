@@ -33,6 +33,19 @@ const createStyles = (colors: Colors) =>
     form: {
       gap: spacing.md,
     },
+    dividerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: spacing.lg,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    dividerText: {
+      marginHorizontal: spacing.md,
+    },
     footer: {
       flexDirection: 'row',
       justifyContent: 'center',
@@ -49,6 +62,8 @@ function SignInScreen() {
   const styles = useMemo(() => createStyles(colors), [colors])
 
   const signIn = useAuthStore((state) => state.signIn)
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle)
+  const signInWithApple = useAuthStore((state) => state.signInWithApple)
   const isLoading = useAuthStore((state) => state.isLoading)
 
   const {
@@ -78,6 +93,32 @@ function SignInScreen() {
     },
     [signIn]
   )
+
+  const onGoogleSignIn = useCallback(async () => {
+    try {
+      await signInWithGoogle()
+    } catch (error) {
+      Alert.alert(
+        'Google Sign In Failed',
+        error instanceof Error ? error.message : 'An unexpected error occurred'
+      )
+    }
+  }, [signInWithGoogle])
+
+  const onAppleSignIn = useCallback(async () => {
+    try {
+      await signInWithApple()
+    } catch (error) {
+      // Don't show alert for user cancellation
+      if (error instanceof Error && error.message === 'Sign in was cancelled') {
+        return
+      }
+      Alert.alert(
+        'Apple Sign In Failed',
+        error instanceof Error ? error.message : 'An unexpected error occurred'
+      )
+    }
+  }, [signInWithApple])
 
   return (
     <KeyboardAvoidingView
@@ -137,6 +178,39 @@ function SignInScreen() {
             </Pressable>
           </Link>
         </View>
+
+        <View style={styles.dividerContainer}>
+          <View style={styles.dividerLine} />
+          <Text variant="bodySmall" color="secondary" style={styles.dividerText}>
+            or continue with
+          </Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Button
+          variant="outline"
+          onPress={onGoogleSignIn}
+          disabled={loading}
+          fullWidth
+          accessibilityLabel="Sign in with Google"
+          accessibilityHint="Double tap to sign in with your Google account"
+        >
+          Continue with Google
+        </Button>
+
+        {Platform.OS === 'ios' && (
+          <Button
+            variant="outline"
+            onPress={onAppleSignIn}
+            disabled={loading}
+            fullWidth
+            style={{ marginTop: spacing.sm }}
+            accessibilityLabel="Sign in with Apple"
+            accessibilityHint="Double tap to sign in with your Apple account"
+          >
+            Continue with Apple
+          </Button>
+        )}
 
         <View style={styles.footer}>
           <Text variant="bodySmall" color="secondary">

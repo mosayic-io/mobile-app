@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.yourappname",
+      "bundleIdentifier": "com.kealy.jimigymtracker",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -24,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.yourcompany.yourappname",
+      "package": "com.kealy.jimigymtracker",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -33,6 +34,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       [
         "expo-splash-screen",
         {
@@ -51,7 +53,14 @@
           "icon": "./assets/images/logo.png",
           "color": "#E6F4FE"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1044547510570-00eeg54r5orvacl9a8hafbvimjma58hs"
+        }
       ]
+
     ],
     "experiments": {
       "typedRoutes": true,
@@ -59,6 +68,12 @@
     },
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "545282e5-6f7d-4421-a5fc-13691b0a2dae"
+      }
     }
   }
 }

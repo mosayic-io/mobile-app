@@ -9,11 +9,13 @@
       "distribution": "internal",
       "env": {
         "APP_ENV": "development",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_LOCAL_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "YOUR_LOCAL_SUPABASE_PUBLISHABLE_KEY"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kgjylxntmeobvnihalgo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "sb_publishable_BaTEdj5SgU9OoT3VIurTaw_YZzKdkL3",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1044547510570-00eeg54r5orvacl9a8hafbvimjma58hs.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1044547510570-g5qhm060fhaqp3s2s5kob884dd9ut5fg.apps.googleusercontent.com"
       },
       "ios": {
-        "simulator": true
+        "simulator": false
       },
       "android": {
         "buildType": "apk"
@@ -23,8 +25,10 @@
       "distribution": "internal",
       "env": {
         "APP_ENV": "preview",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_LOCAL_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "YOUR_LOCAL_SUPABASE_PUBLISHABLE_KEY"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kgjylxntmeobvnihalgo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "sb_publishable_BaTEdj5SgU9OoT3VIurTaw_YZzKdkL3",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1044547510570-00eeg54r5orvacl9a8hafbvimjma58hs.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1044547510570-g5qhm060fhaqp3s2s5kob884dd9ut5fg.apps.googleusercontent.com"
       },
       "ios": {
         "simulator": false
