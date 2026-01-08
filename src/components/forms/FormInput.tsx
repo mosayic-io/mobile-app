@@ -21,7 +21,7 @@ export function FormInput<T extends FieldValues>({
       name={name}
       render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
         <Input
-          value={value}
+          value={value ?? ''}
           onChangeText={onChange}
           onBlur={onBlur}
           error={error?.message}

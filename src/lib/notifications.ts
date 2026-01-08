@@ -15,6 +15,18 @@ Notifications.setNotificationHandler({
   }),
 })
 
+const FUTURE_JWT_ERROR_CODE = 'PGRST303'
+const TOKEN_SAVE_MAX_ATTEMPTS = 3
+
+function isFutureJwtError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  return 'code' in error && (error as { code?: string }).code === FUTURE_JWT_ERROR_CODE
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 /**
  * Request notification permissions from the user
  */
@@ -94,9 +106,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
  * This stores the most recent token (schema defines fcm_tokens as text)
  */
 export async function savePushTokenToUser(userId: string, token: string): Promise<void> {
-  const { error } = await supabase.from('users').update({ fcm_tokens: token }).eq('id', userId)
+  for (let attempt = 1; attempt <= TOKEN_SAVE_MAX_ATTEMPTS; attempt += 1) {
+    const { error } = await supabase.from('users').update({ fcm_tokens: token }).eq('id', userId)
 
-  if (error) {
+    if (!error) return
+
+    if (isFutureJwtError(error) && attempt < TOKEN_SAVE_MAX_ATTEMPTS) {
+      await sleep(1000 * attempt)
+      continue
+    }
+
     console.error('Failed to save push token:', error)
     throw error
   }
@@ -106,9 +125,16 @@ export async function savePushTokenToUser(userId: string, token: string): Promis
  * Remove the push token from the user's fcm_tokens column in Supabase
  */
 export async function removePushTokenFromUser(userId: string): Promise<void> {
-  const { error } = await supabase.from('users').update({ fcm_tokens: null }).eq('id', userId)
+  for (let attempt = 1; attempt <= TOKEN_SAVE_MAX_ATTEMPTS; attempt += 1) {
+    const { error } = await supabase.from('users').update({ fcm_tokens: null }).eq('id', userId)
 
-  if (error) {
+    if (!error) return
+
+    if (isFutureJwtError(error) && attempt < TOKEN_SAVE_MAX_ATTEMPTS) {
+      await sleep(1000 * attempt)
+      continue
+    }
+
     console.error('Failed to remove push token:', error)
     throw error
   }

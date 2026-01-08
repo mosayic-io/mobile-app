@@ -1,35 +1,27 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
+import { useCallback, useMemo, useRef } from 'react'
 import {
   Alert,
   Dimensions,
-  KeyboardAvoidingView,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
   View,
 } from 'react-native'
 import PagerView from 'react-native-pager-view'
+import { Defs, RadialGradient, Rect, Stop, Svg } from 'react-native-svg'
 
 import { ScreenErrorBoundary } from '@/src/components/error'
-import { FormInput } from '@/src/components/forms'
 import { Button, Text } from '@/src/components/ui'
 import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
-import { spacing, borderRadius, type Colors } from '@/src/lib/theme'
-import {
-  signInSchema,
-  signUpSchema,
-  type SignInFormData,
-  type SignUpFormData,
-} from '@/src/lib/validations/auth'
+import { spacing, type Colors } from '@/src/lib/theme'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
-// Customize these gradient colors to match your brand
-const WELCOME_GRADIENT_COLORS = ['#4F46E5', '#7C3AED', '#9333EA'] as const
+const GOOGLE_ICON_SOURCE = require('../../assets/images/google.png')
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
@@ -65,39 +57,13 @@ const createStyles = (colors: Colors) =>
     dividerText: {
       marginHorizontal: spacing.md,
     },
-    emailAuthContent: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    tabContainer: {
-      flexDirection: 'row',
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    tab: {
-      flex: 1,
-      paddingVertical: spacing.md,
-      alignItems: 'center',
-    },
-    activeTab: {
-      borderBottomWidth: 2,
-      borderBottomColor: colors.accent,
-    },
-    formContainer: {
-      flex: 1,
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xl,
-    },
-    form: {
-      gap: spacing.md,
-    },
     backButton: {
       marginTop: spacing.lg,
       alignItems: 'center',
     },
-    forgotPassword: {
-      alignItems: 'center',
-      marginTop: spacing.sm,
+    socialIcon: {
+      width: 18,
+      height: 18,
     },
   })
 
@@ -106,85 +72,74 @@ const createStyles = (colors: Colors) =>
 // ============================================================================
 function WelcomePage({
   onGetStarted,
+  colors,
 }: {
   onGetStarted: () => void
+  colors: Colors
 }) {
-  return (
-    <LinearGradient
-      colors={WELCOME_GRADIENT_COLORS}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={welcomeStyles.container}
-    >
-      <View style={welcomeStyles.content}>
-        <View style={welcomeStyles.header}>
-          {/* Replace with your logo */}
-          <View style={welcomeStyles.logoPlaceholder}>
-            <Text variant="h1" style={{ color: '#fff' }}>
-              Logo
-            </Text>
-          </View>
-        </View>
+  const styles = useMemo(() => createWelcomeStyles(colors), [colors])
 
-        <View style={welcomeStyles.footer}>
-          <Text variant="h1" style={welcomeStyles.title}>
-            Welcome to Your App
-          </Text>
-          <Text variant="body" style={welcomeStyles.subtitle}>
-            This is placeholder copy for your onboarding experience.
-            Customize this text to match your app's value proposition.
-          </Text>
-          <Button
-            onPress={onGetStarted}
-            fullWidth
-            variant="outline"
-            style={welcomeStyles.button}
-            accessibilityLabel="Get started"
-            accessibilityHint="Double tap to continue to sign in options"
-          >
-            Get Started
-          </Button>
-        </View>
+  return (
+    <View style={styles.container}>
+      <Svg width="100%" height="100%" style={styles.background}>
+        <Defs>
+          <RadialGradient id="softGlow" cx="80%" cy="20%" rx="65%" ry="65%">
+            <Stop offset="0%" stopColor={colors.accent} stopOpacity="0.16" />
+            <Stop offset="55%" stopColor={colors.accent} stopOpacity="0.08" />
+            <Stop offset="100%" stopColor={colors.background} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill={colors.background} />
+        <Rect width="100%" height="100%" fill="url(#softGlow)" />
+      </Svg>
+      <View style={styles.content}>
+        <Text variant="h1" style={styles.title}>
+          Welcome to Your App
+        </Text>
+        <Text variant="body" style={styles.subtitle}>
+          This is placeholder copy for your onboarding experience.
+          Customize this text to match your app&apos;s value proposition.
+        </Text>
+        <Button
+          onPress={onGetStarted}
+          fullWidth
+          variant="primary"
+          accessibilityLabel="Get started"
+          accessibilityHint="Double tap to continue to sign in options"
+        >
+          Get Started
+        </Button>
       </View>
-    </LinearGradient>
+    </View>
   )
 }
 
-const welcomeStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl * 3,
-    paddingBottom: spacing.xl * 2,
-  },
-  header: {
-    alignItems: 'center',
-  },
-  logoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footer: {},
-  title: {
-    color: '#fff',
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginBottom: spacing.xl,
-  },
-  button: {
-    borderColor: '#fff',
-  },
-})
+const createWelcomeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    background: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    title: {
+      color: colors.text,
+      marginBottom: spacing.sm,
+      textAlign: 'center',
+    },
+    subtitle: {
+      color: colors.secondary,
+      marginBottom: spacing.xl,
+      textAlign: 'center',
+    },
+  })
 
 // ============================================================================
 // Auth Method Selection Page Component
@@ -223,6 +178,7 @@ function AuthMethodPage({
           onPress={onContinueWithGoogle}
           disabled={isLoading}
           fullWidth
+          leftIcon={<Image source={GOOGLE_ICON_SOURCE} style={styles.socialIcon} />}
           accessibilityLabel="Continue with Google"
           accessibilityHint="Double tap to sign in with your Google account"
         >
@@ -235,6 +191,7 @@ function AuthMethodPage({
             onPress={onContinueWithApple}
             disabled={isLoading}
             fullWidth
+            leftIcon={<Ionicons name="logo-apple" size={18} color={colors.text} />}
             accessibilityLabel="Continue with Apple"
             accessibilityHint="Double tap to sign in with your Apple account"
           >
@@ -277,209 +234,12 @@ function AuthMethodPage({
 }
 
 // ============================================================================
-// Email Auth Page Component (with Login/Sign Up tabs)
-// ============================================================================
-function EmailAuthPage({
-  onBack,
-  colors,
-}: {
-  onBack: () => void
-  colors: Colors
-}) {
-  const styles = useMemo(() => createStyles(colors), [colors])
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
-
-  const signIn = useAuthStore((state) => state.signIn)
-  const signUp = useAuthStore((state) => state.signUp)
-  const isLoading = useAuthStore((state) => state.isLoading)
-
-  // Login form
-  const loginForm = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: { email: '', password: '' },
-  })
-
-  // Sign up form
-  const signUpForm = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: { email: '', password: '', confirmPassword: '' },
-  })
-
-  const loading = isLoading || loginForm.formState.isSubmitting || signUpForm.formState.isSubmitting
-
-  const onLogin = useCallback(
-    async (data: SignInFormData) => {
-      try {
-        await signIn(data.email, data.password)
-      } catch (error) {
-        Alert.alert(
-          'Sign In Failed',
-          error instanceof Error ? error.message : 'An unexpected error occurred'
-        )
-      }
-    },
-    [signIn]
-  )
-
-  const onSignUp = useCallback(
-    async (data: SignUpFormData) => {
-      try {
-        await signUp(data.email, data.password)
-        Alert.alert(
-          'Check your email',
-          'We sent you a confirmation link to verify your account.'
-        )
-      } catch (error) {
-        Alert.alert(
-          'Sign Up Failed',
-          error instanceof Error ? error.message : 'An unexpected error occurred'
-        )
-      }
-    },
-    [signUp]
-  )
-
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.page, styles.emailAuthContent]}
-    >
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <Pressable
-          style={[styles.tab, activeTab === 'login' && styles.activeTab]}
-          onPress={() => setActiveTab('login')}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeTab === 'login' }}
-        >
-          <Text
-            variant="body"
-            weight={activeTab === 'login' ? 'semibold' : 'normal'}
-            color={activeTab === 'login' ? 'accent' : 'secondary'}
-          >
-            Sign In
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.tab, activeTab === 'signup' && styles.activeTab]}
-          onPress={() => setActiveTab('signup')}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeTab === 'signup' }}
-        >
-          <Text
-            variant="body"
-            weight={activeTab === 'signup' ? 'semibold' : 'normal'}
-            color={activeTab === 'signup' ? 'accent' : 'secondary'}
-          >
-            Sign Up
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Form Container */}
-      <View style={styles.formContainer}>
-        {activeTab === 'login' ? (
-          <View style={styles.form}>
-            <FormInput
-              control={loginForm.control}
-              name="email"
-              label="Email"
-              placeholder="Enter your email"
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              leftIcon="mail-outline"
-            />
-            <FormInput
-              control={loginForm.control}
-              name="password"
-              label="Password"
-              placeholder="Enter your password"
-              secureTextEntry
-              autoComplete="password"
-              leftIcon="lock-closed-outline"
-            />
-            <Button
-              onPress={loginForm.handleSubmit(onLogin)}
-              loading={loading}
-              fullWidth
-              accessibilityLabel="Sign in to your account"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-            <Pressable
-              style={styles.forgotPassword}
-              accessibilityRole="link"
-              accessibilityLabel="Forgot password"
-            >
-              <Text variant="bodySmall" color="secondary">
-                Forgot password?
-              </Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.form}>
-            <FormInput
-              control={signUpForm.control}
-              name="email"
-              label="Email"
-              placeholder="Enter your email"
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              leftIcon="mail-outline"
-            />
-            <FormInput
-              control={signUpForm.control}
-              name="password"
-              label="Password"
-              placeholder="Create a password"
-              secureTextEntry
-              autoComplete="new-password"
-              leftIcon="lock-closed-outline"
-              hint="Must be at least 6 characters"
-            />
-            <FormInput
-              control={signUpForm.control}
-              name="confirmPassword"
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              secureTextEntry
-              autoComplete="new-password"
-              leftIcon="lock-closed-outline"
-            />
-            <Button
-              onPress={signUpForm.handleSubmit(onSignUp)}
-              loading={loading}
-              fullWidth
-              accessibilityLabel="Create your account"
-            >
-              {loading ? 'Creating account...' : 'Sign Up'}
-            </Button>
-          </View>
-        )}
-
-        <Pressable
-          style={styles.backButton}
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel="Go back to sign in options"
-        >
-          <Text variant="bodySmall" color="secondary">
-            Back to sign in options
-          </Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
-  )
-}
-
-// ============================================================================
 // Main Onboarding Screen
 // ============================================================================
 function OnboardingScreen() {
   const colors = useColors()
   const pagerRef = useRef<PagerView>(null)
+  const router = useRouter()
 
   const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle)
   const signInWithApple = useAuthStore((state) => state.signInWithApple)
@@ -514,6 +274,10 @@ function OnboardingScreen() {
     }
   }, [signInWithApple])
 
+  const onContinueWithEmail = useCallback(() => {
+    router.push('/(auth)/email-auth')
+  }, [router])
+
   return (
     <PagerView
       ref={pagerRef}
@@ -523,25 +287,17 @@ function OnboardingScreen() {
     >
       {/* Page 0: Welcome */}
       <View key="welcome" style={{ flex: 1 }}>
-        <WelcomePage onGetStarted={() => goToPage(1)} />
+        <WelcomePage onGetStarted={() => goToPage(1)} colors={colors} />
       </View>
 
       {/* Page 1: Auth Method Selection */}
       <View key="auth-method" style={{ flex: 1 }}>
         <AuthMethodPage
-          onContinueWithEmail={() => goToPage(2)}
+          onContinueWithEmail={onContinueWithEmail}
           onContinueWithGoogle={onGoogleSignIn}
           onContinueWithApple={onAppleSignIn}
           onBack={() => goToPage(0)}
           isLoading={isLoading}
-          colors={colors}
-        />
-      </View>
-
-      {/* Page 2: Email Auth (Login/Sign Up tabs) */}
-      <View key="email-auth" style={{ flex: 1 }}>
-        <EmailAuthPage
-          onBack={() => goToPage(1)}
           colors={colors}
         />
       </View>
