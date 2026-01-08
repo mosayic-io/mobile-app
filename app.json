@@ -2,7 +2,7 @@
   "expo": {
     "name": "YourAppName",
     "slug": "your-project-id-slug",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "yourappname",
@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yourcompany.yourappname",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -33,6 +34,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       [
         "expo-splash-screen",
         {
@@ -51,7 +53,14 @@
           "icon": "./assets/images/logo.png",
           "color": "#E6F4FE"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.GET_THIS_FROM_GOOGLE_CONSOLE"
+        }
       ]
+
     ],
     "experiments": {
       "typedRoutes": true,

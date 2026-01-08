@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
+  View,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
@@ -22,6 +23,7 @@ type ButtonProps = Omit<PressableProps, 'style'> & {
   size?: ButtonSize
   loading?: boolean
   fullWidth?: boolean
+  leftIcon?: ReactNode
   style?: StyleProp<ViewStyle>
   textStyle?: StyleProp<TextStyle>
 }
@@ -67,6 +69,7 @@ const createStyles = (colors: Colors) => {
       disabled: { opacity: 0.6 },
       textBase: { fontWeight: fontWeight.semibold },
       loader: { marginRight: spacing.sm },
+      icon: { marginRight: spacing.sm },
     }),
     variant: variantStyles,
     textVariant: textVariantStyles,
@@ -80,6 +83,7 @@ export function Button({
   loading = false,
   fullWidth = false,
   disabled,
+  leftIcon,
   style,
   textStyle,
   ...props
@@ -108,6 +112,7 @@ export function Button({
       {loading && (
         <ActivityIndicator size="small" color={loaderColor} style={styles.base.loader} />
       )}
+      {leftIcon ? <View style={styles.base.icon}>{leftIcon}</View> : null}
       <Text
         style={[
           styles.base.textBase,

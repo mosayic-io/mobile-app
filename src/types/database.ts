@@ -49,7 +49,6 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           email: string | null
-          fcm_tokens: string | null
           id: string
           photo_url: string | null
           updated_at: string | null
@@ -58,7 +57,6 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
-          fcm_tokens?: string | null
           id: string
           photo_url?: string | null
           updated_at?: string | null
@@ -67,7 +65,6 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
-          fcm_tokens?: string | null
           id?: string
           photo_url?: string | null
           updated_at?: string | null
@@ -77,6 +74,38 @@ export type Database = {
             foreignKeyName: 'user_profiles_id_fkey'
             columns: ['id']
             isOneToOne: true
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      devices: {
+        Row: {
+          id: string
+          user_id: string
+          fcm_token: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          fcm_token: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          fcm_token?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'devices_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
             referencedRelation: 'users'
             referencedColumns: ['id']
           }
@@ -118,6 +147,10 @@ export type TablesUpdate<T extends keyof Database['public']['Tables']> =
 export type User = Tables<'users'>
 export type UserInsert = TablesInsert<'users'>
 export type UserUpdate = TablesUpdate<'users'>
+
+export type Device = Tables<'devices'>
+export type DeviceInsert = TablesInsert<'devices'>
+export type DeviceUpdate = TablesUpdate<'devices'>
 
 export type Item = Tables<'items'>
 export type ItemInsert = TablesInsert<'items'>

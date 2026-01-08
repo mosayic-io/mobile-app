@@ -111,7 +111,7 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)'
 
     if (!session && !inAuthGroup) {
-      router.replace('/(auth)/sign-in')
+      router.replace('/(auth)/onboarding')
     } else if (session && inAuthGroup) {
       router.replace('/(tabs)')
     }

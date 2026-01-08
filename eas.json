@@ -7,24 +7,18 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": {
-        "APP_ENV": "development",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_LOCAL_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "YOUR_LOCAL_SUPABASE_PUBLISHABLE_KEY"
-      },
       "ios": {
-        "simulator": true
+        "simulator": false
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "APP_ENV": "preview",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_LOCAL_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "YOUR_LOCAL_SUPABASE_PUBLISHABLE_KEY"
       },
       "ios": {
         "simulator": false
@@ -37,8 +31,11 @@
       "distribution": "store",
       "env": {
         "APP_ENV": "production",
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_PRODUCTION_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "YOUR_PRODUCTION_SUPABASE_PUBLISHABLE_KEY"
+        "EXPO_PUBLIC_API_URL": "<YOUR_PROD_API_URL_FROM_GCP_CLOUD_RUN>",
+        "EXPO_PUBLIC_SUPABASE_URL": "<YOUR_PROD_SUPABASE_URL>",
+        "EXPO_PUBLIC_SUPABASE_PUB_KEY": "<YOUR_PROD_SUPABASE_PUBLISHABLE_KEY>",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "<YOUR_IOS_CLIENT_ID_FROM_GOOGLE_CONSOLE>",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "<YOUR_WEB_CLIENT_ID_FROM_GOOGLE_CONSOLE>"
       },
       "autoIncrement": true
     }

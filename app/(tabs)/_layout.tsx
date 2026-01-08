@@ -43,6 +43,13 @@ export default function TabLayout() {
           tabBarAccessibilityLabel: 'Profile tab',
         }}
       />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          title: 'Edit Profile',
+          href: null,
+        }}
+      />
     </Tabs>
   )
 }
