@@ -6,32 +6,38 @@ import 'react-native-url-polyfill/auto'
 
 import type { Database } from '@/src/types/database'
 
-type EnvKey = 'EXPO_PUBLIC_SUPABASE_URL' | 'EXPO_PUBLIC_SUPABASE_PUB_KEY'
-
-function readEnv(key: EnvKey, extraKey: string): string | undefined {
+function readEnv(envValue: string | undefined, extraKey: string): string | undefined {
   const extra = Constants.expoConfig?.extra as Record<string, string | undefined> | undefined
 
   return (
-    process.env[key] ??
+    envValue ??
     // Allow falling back to values provided in app.json/app.config extra
     extra?.[extraKey]
   )
 }
 
-function requireEnv(key: EnvKey, extraKey: string): string {
-  const value = readEnv(key, extraKey)
+function requireEnv(envValue: string | undefined, extraKey: string, envKey: string): string {
+  const value = readEnv(envValue, extraKey)
 
   if (!value) {
     const hint =
       'Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUB_KEY in your environment or app.json extra.'
-    throw new Error(`Missing required environment variable: ${key}. ${hint}`)
+    throw new Error(`Missing required environment variable: ${envKey}. ${hint}`)
   }
 
   return value
 }
 
-const supabaseUrl = requireEnv('EXPO_PUBLIC_SUPABASE_URL', 'supabaseUrl')
-const supabaseAnonKey = requireEnv('EXPO_PUBLIC_SUPABASE_PUB_KEY', 'supabaseAnonKey')
+const supabaseUrl = requireEnv(
+  process.env.EXPO_PUBLIC_SUPABASE_URL,
+  'supabaseUrl',
+  'EXPO_PUBLIC_SUPABASE_URL'
+)
+const supabaseAnonKey = requireEnv(
+  process.env.EXPO_PUBLIC_SUPABASE_PUB_KEY,
+  'supabaseAnonKey',
+  'EXPO_PUBLIC_SUPABASE_PUB_KEY'
+)
 
 type SupabaseClientType = ReturnType<typeof createClient<Database>>
 
