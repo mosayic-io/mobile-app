@@ -167,42 +167,65 @@ Then reference in `eas.json`:
 
 Push tokens are automatically stored in the `users.fcm_tokens` column when users sign in.
 
-## Scripts
+## Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start Expo dev server |
-| `npm run start:dev` | Start with development environment |
-| `npm run lint` | Run ESLint |
-| `npm run typecheck` | TypeScript type checking |
-| `npm run build:dev` | EAS development build |
-| `npm run build:preview` | EAS preview build |
-| `npm run build:prod` | EAS production build |
+### Development
+
+```bash
+npx expo start          # Start dev server
+npx expo start --clear  # Clear cache and start
+```
+
+### EAS Build & Deploy
+
+Requires EAS CLI installed globally (`npm install -g eas-cli`).
+
+```bash
+# Development builds (internal testing)
+eas build --profile development --platform ios
+eas build --profile development --platform android
+
+# Production builds
+eas build --profile production --platform ios
+eas build --profile production --platform android
+
+# Build and submit to stores
+eas build --profile production --platform ios --auto-submit
+eas build --profile production --platform android --auto-submit
+
+# Over-the-air updates
+eas update --branch production --message "Description of update"
+```
+
+### Build Profiles
+
+| Profile | Purpose |
+|---------|---------|
+| `development` | Dev client builds for internal distribution |
+| `production` | Store builds with auto-increment versioning |
 
 ## Project Structure
 
 ```
 ├── app/                    # Expo Router file-based routing
-│   ├── (auth)/             # Auth screens (sign-in, sign-up, forgot-password)
-│   ├── (tabs)/             # Tab navigation (home, profile)
+│   ├── (auth)/             # Auth screens (email-auth, onboarding)
+│   ├── (tabs)/             # Tab navigation (home, profile, edit-profile)
 │   └── _layout.tsx         # Root layout with providers
 ├── src/
 │   ├── components/         # Reusable components
-│   │   ├── ui/             # UI primitives (Button, Input, Text, Card, Avatar)
+│   │   ├── ui/             # UI primitives (Button, Input, Text, Avatar)
 │   │   ├── forms/          # Form components with react-hook-form
 │   │   └── error/          # Error boundaries
 │   ├── features/           # Feature modules
-│   │   ├── auth/           # Authentication (stores, hooks)
-│   │   ├── items/          # Items CRUD (example feature)
-│   │   └── profile/        # User profile
+│   │   ├── auth/           # Authentication (stores)
+│   │   └── profile/        # User profile (hooks)
 │   ├── hooks/              # Global hooks (useColors, useIsDark)
-│   ├── lib/                # Utilities (supabase, theme, queryClient)
-│   ├── stores/             # Global Zustand stores
+│   ├── lib/                # Utilities (api, supabase, theme, queryClient, notifications)
+│   ├── stores/             # Global Zustand stores (theme, notifications)
 │   └── types/              # TypeScript types
 ├── assets/                 # Static assets
 ├── app.json                # Expo configuration
-├── eas.json                # EAS Build configuration
-└── codemagic.yaml          # Codemagic CI/CD configuration
+└── eas.json                # EAS Build configuration
 ```
 
 ## Adding New Features
@@ -261,7 +284,9 @@ Push to your repository to trigger builds, or manually trigger from Codemagic da
 If you see errors in Expo Go, you likely need a development build:
 
 ```bash
-npm run build:dev
+eas build --profile development --platform ios
+# or
+eas build --profile development --platform android
 ```
 
 Expo Go has limited native module support. Development builds include all native code.

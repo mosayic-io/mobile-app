@@ -16,17 +16,6 @@
       "env": {
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "env": {
-      },
-      "ios": {
-        "simulator": false
-      },
-      "android": {
-        "buildType": "apk"
-      }
-    },
     "production": {
       "distribution": "store",
       "env": {
