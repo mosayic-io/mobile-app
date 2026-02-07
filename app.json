@@ -59,8 +59,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.GET_THIS_FROM_GOOGLE_CONSOLE"
         }
-      ]
-
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
