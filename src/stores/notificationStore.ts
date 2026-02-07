@@ -23,6 +23,9 @@ type NotificationActions = {
 
 type NotificationStore = NotificationState & NotificationActions
 
+// Module-level promise to deduplicate concurrent registration calls
+let registrationInFlight: Promise<void> | null = null
+
 export const useNotificationStore = create<NotificationStore>()(
   persist(
     (set, get) => ({
@@ -31,31 +34,43 @@ export const useNotificationStore = create<NotificationStore>()(
       error: null,
 
       registerAndSaveToken: async (userId: string) => {
+        // If a registration is already in flight, wait for it instead of starting a new one
+        if (registrationInFlight) {
+          await registrationInFlight
+          return
+        }
+
         set({ isRegistering: true, error: null })
 
-        try {
-          const token = await registerForPushNotifications()
+        registrationInFlight = (async () => {
+          try {
+            const token = await registerForPushNotifications()
 
-          if (token) {
-            await savePushTokenToDevice(userId, token)
-            set({ expoPushToken: token, isRegistering: false })
-          } else {
-            set({
-              isRegistering: false,
-              error: 'Could not get push token',
-            })
+            if (token) {
+              await savePushTokenToDevice(userId, token)
+              set({ expoPushToken: token, isRegistering: false })
+            } else {
+              set({
+                isRegistering: false,
+                error: 'Could not get push token',
+              })
+            }
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Failed to register for notifications'
+            console.error('Notification registration failed:', error)
+            set({ isRegistering: false, error: errorMessage })
+          } finally {
+            registrationInFlight = null
           }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Failed to register for notifications'
-          console.error('Notification registration failed:', error)
-          set({ isRegistering: false, error: errorMessage })
-        }
+        })()
+
+        await registrationInFlight
       },
 
       ensureToken: async (userId: string) => {
         // Avoid repeated registration while a token is already present or registration in progress
-        if (get().isRegistering || get().expoPushToken) return
+        if (get().expoPushToken) return
 
         await get().registerAndSaveToken(userId)
       },
