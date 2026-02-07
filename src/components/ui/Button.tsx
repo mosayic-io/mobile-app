@@ -10,6 +10,11 @@ import {
   type ViewStyle,
   type TextStyle,
 } from 'react-native'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
 
 import { useColors } from '@/src/hooks/useColors'
 import { spacing, fontSize, fontWeight, borderRadius, type Colors } from '@/src/lib/theme'
@@ -94,35 +99,48 @@ export function Button({
   const isDisabled = disabled || loading
   const loaderColor = variant === 'primary' || variant === 'danger' ? colors.background : colors.text
 
+  const scale = useSharedValue(1)
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }))
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
-      disabled={isDisabled}
-      style={[
-        styles.base.container,
-        sizeStyles[size],
-        styles.variant[variant],
-        fullWidth && styles.base.fullWidth,
-        isDisabled && styles.base.disabled,
-        style,
-      ]}
-      {...props}
-    >
-      {loading && (
-        <ActivityIndicator size="small" color={loaderColor} style={styles.base.loader} />
-      )}
-      {leftIcon ? <View style={styles.base.icon}>{leftIcon}</View> : null}
-      <Text
+    <Animated.View style={[fullWidth && styles.base.fullWidth, animatedStyle]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isDisabled }}
+        disabled={isDisabled}
+        onPressIn={() => {
+          scale.value = withTiming(0.97, { duration: 100 })
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 150 })
+        }}
         style={[
-          styles.base.textBase,
-          textSizeStyles[size],
-          styles.textVariant[variant],
-          textStyle,
+          styles.base.container,
+          sizeStyles[size],
+          styles.variant[variant],
+          fullWidth && styles.base.fullWidth,
+          isDisabled && styles.base.disabled,
+          style,
         ]}
+        {...props}
       >
-        {children}
-      </Text>
-    </Pressable>
+        {loading && (
+          <ActivityIndicator size="small" color={loaderColor} style={styles.base.loader} />
+        )}
+        {leftIcon ? <View style={styles.base.icon}>{leftIcon}</View> : null}
+        <Text
+          style={[
+            styles.base.textBase,
+            textSizeStyles[size],
+            styles.textVariant[variant],
+            textStyle,
+          ]}
+        >
+          {children}
+        </Text>
+      </Pressable>
+    </Animated.View>
   )
 }

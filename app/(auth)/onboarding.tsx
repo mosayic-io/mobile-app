@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Dimensions,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native'
 import PagerView from 'react-native-pager-view'
+import Animated, { FadeInUp } from 'react-native-reanimated'
 import { Defs, RadialGradient, Rect, Stop, Svg } from 'react-native-svg'
 
 import { ScreenErrorBoundary } from '@/src/components/error'
@@ -93,22 +94,28 @@ function WelcomePage({
         <Rect width="100%" height="100%" fill="url(#softGlow)" />
       </Svg>
       <View style={styles.content}>
-        <Text variant="h1" style={styles.title}>
-          Welcome to Your App
-        </Text>
-        <Text variant="body" style={styles.subtitle}>
-          This is placeholder copy for your onboarding experience.
-          Customize this text to match your app&apos;s value proposition.
-        </Text>
-        <Button
-          onPress={onGetStarted}
-          fullWidth
-          variant="primary"
-          accessibilityLabel="Get started"
-          accessibilityHint="Double tap to continue to sign in options"
-        >
-          Get Started
-        </Button>
+        <Animated.View entering={FadeInUp.duration(350).delay(100).withInitialValues({ transform: [{ translateY: 10 }] })}>
+          <Text variant="h1" style={styles.title}>
+            Welcome to Your App
+          </Text>
+        </Animated.View>
+        <Animated.View entering={FadeInUp.duration(350).delay(200).withInitialValues({ transform: [{ translateY: 10 }] })}>
+          <Text variant="body" style={styles.subtitle}>
+            This is placeholder copy for your onboarding experience.
+            Customize this text to match your app&apos;s value proposition.
+          </Text>
+        </Animated.View>
+        <Animated.View entering={FadeInUp.duration(350).delay(300).withInitialValues({ transform: [{ translateY: 10 }] })} style={{ width: '100%' }}>
+          <Button
+            onPress={onGetStarted}
+            fullWidth
+            variant="primary"
+            accessibilityLabel="Get started"
+            accessibilityHint="Double tap to continue to sign in options"
+          >
+            Get Started
+          </Button>
+        </Animated.View>
       </View>
     </View>
   )
@@ -151,6 +158,7 @@ function AuthMethodPage({
   onBack,
   isLoading,
   colors,
+  isActive,
 }: {
   onContinueWithEmail: () => void
   onContinueWithGoogle: () => void
@@ -158,77 +166,84 @@ function AuthMethodPage({
   onBack: () => void
   isLoading: boolean
   colors: Colors
+  isActive: boolean
 }) {
   const styles = useMemo(() => createStyles(colors), [colors])
 
   return (
     <View style={[styles.page, styles.authMethodContent]}>
-      <View style={styles.authMethodHeader}>
-        <Text variant="h1" style={{ marginBottom: spacing.sm }}>
-          How would you like to continue?
-        </Text>
-        <Text variant="body" color="secondary">
-          Choose your preferred sign in method
-        </Text>
-      </View>
+      {isActive && (
+        <>
+          <Animated.View entering={FadeInUp.duration(300).delay(50).withInitialValues({ transform: [{ translateY: 10 }] })} style={styles.authMethodHeader}>
+            <Text variant="h1" style={{ marginBottom: spacing.sm }}>
+              How would you like to continue?
+            </Text>
+            <Text variant="body" color="secondary">
+              Choose your preferred sign in method
+            </Text>
+          </Animated.View>
 
-      <View style={styles.authMethodButtons}>
-        <Button
-          variant="outline"
-          onPress={onContinueWithGoogle}
-          disabled={isLoading}
-          fullWidth
-          leftIcon={<Image source={GOOGLE_ICON_SOURCE} style={styles.socialIcon} />}
-          accessibilityLabel="Continue with Google"
-          accessibilityHint="Double tap to sign in with your Google account"
-        >
-          Continue with Google
-        </Button>
+          <Animated.View entering={FadeInUp.duration(300).delay(150).withInitialValues({ transform: [{ translateY: 10 }] })} style={styles.authMethodButtons}>
+            <Button
+              variant="outline"
+              onPress={onContinueWithGoogle}
+              disabled={isLoading}
+              fullWidth
+              leftIcon={<Image source={GOOGLE_ICON_SOURCE} style={styles.socialIcon} />}
+              accessibilityLabel="Continue with Google"
+              accessibilityHint="Double tap to sign in with your Google account"
+            >
+              Continue with Google
+            </Button>
 
-        {Platform.OS === 'ios' && (
-          <Button
-            variant="outline"
-            onPress={onContinueWithApple}
-            disabled={isLoading}
-            fullWidth
-            leftIcon={<Ionicons name="logo-apple" size={18} color={colors.text} />}
-            accessibilityLabel="Continue with Apple"
-            accessibilityHint="Double tap to sign in with your Apple account"
-          >
-            Continue with Apple
-          </Button>
-        )}
+            {Platform.OS === 'ios' && (
+              <Button
+                variant="outline"
+                onPress={onContinueWithApple}
+                disabled={isLoading}
+                fullWidth
+                leftIcon={<Ionicons name="logo-apple" size={18} color={colors.text} />}
+                accessibilityLabel="Continue with Apple"
+                accessibilityHint="Double tap to sign in with your Apple account"
+              >
+                Continue with Apple
+              </Button>
+            )}
 
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-          <Text variant="bodySmall" color="secondary" style={styles.dividerText}>
-            or
-          </Text>
-          <View style={styles.dividerLine} />
-        </View>
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text variant="bodySmall" color="secondary" style={styles.dividerText}>
+                or
+              </Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-        <Button
-          variant="primary"
-          onPress={onContinueWithEmail}
-          disabled={isLoading}
-          fullWidth
-          accessibilityLabel="Continue with Email"
-          accessibilityHint="Double tap to sign in with your email address"
-        >
-          Continue with Email
-        </Button>
-      </View>
+            <Button
+              variant="primary"
+              onPress={onContinueWithEmail}
+              disabled={isLoading}
+              fullWidth
+              accessibilityLabel="Continue with Email"
+              accessibilityHint="Double tap to sign in with your email address"
+            >
+              Continue with Email
+            </Button>
+          </Animated.View>
 
-      <Pressable
-        style={styles.backButton}
-        onPress={onBack}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-      >
-        <Text variant="bodySmall" color="secondary">
-          Back
-        </Text>
-      </Pressable>
+          <Animated.View entering={FadeInUp.duration(300).delay(250).withInitialValues({ transform: [{ translateY: 10 }] })}>
+            <Pressable
+              style={styles.backButton}
+              onPress={onBack}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Text variant="bodySmall" color="secondary">
+                Back
+              </Text>
+            </Pressable>
+          </Animated.View>
+        </>
+      )}
     </View>
   )
 }
@@ -244,6 +259,8 @@ function OnboardingScreen() {
   const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle)
   const signInWithApple = useAuthStore((state) => state.signInWithApple)
   const isLoading = useAuthStore((state) => state.isLoading)
+
+  const [authPageActive, setAuthPageActive] = useState(false)
 
   const goToPage = useCallback((page: number) => {
     pagerRef.current?.setPage(page)
@@ -284,6 +301,9 @@ function OnboardingScreen() {
       style={{ flex: 1 }}
       initialPage={0}
       scrollEnabled={false}
+      onPageSelected={(e) => {
+        setAuthPageActive(e.nativeEvent.position === 1)
+      }}
     >
       {/* Page 0: Welcome */}
       <View key="welcome" style={{ flex: 1 }}>
@@ -299,6 +319,7 @@ function OnboardingScreen() {
           onBack={() => goToPage(0)}
           isLoading={isLoading}
           colors={colors}
+          isActive={authPageActive}
         />
       </View>
     </PagerView>

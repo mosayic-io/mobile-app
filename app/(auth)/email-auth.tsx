@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -13,6 +14,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native'
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ScreenErrorBoundary } from '@/src/components/error'
@@ -30,6 +38,8 @@ import {
 } from '@/src/lib/validations/auth'
 
 type ActiveTab = 'signin' | 'signup'
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
@@ -50,9 +60,12 @@ const createStyles = (colors: Colors) =>
       paddingVertical: spacing.md,
       alignItems: 'center',
     },
-    activeTab: {
-      borderBottomWidth: 2,
-      borderBottomColor: colors.accent,
+    tabIndicator: {
+      position: 'absolute',
+      bottom: 0,
+      height: 2,
+      width: '50%',
+      backgroundColor: colors.accent,
     },
     content: {
       paddingHorizontal: spacing.lg,
@@ -112,6 +125,16 @@ function EmailAuthScreen() {
   const signUp = useAuthStore((state) => state.signUp)
   const resetPassword = useAuthStore((state) => state.resetPassword)
   const isLoading = useAuthStore((state) => state.isLoading)
+
+  const tabOffset = useSharedValue(0)
+
+  useEffect(() => {
+    tabOffset.value = withTiming(activeTab === 'signin' ? 0 : 1, { duration: 250 })
+  }, [activeTab, tabOffset])
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tabOffset.value * (SCREEN_WIDTH / 2) }],
+  }))
 
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [resetSent, setResetSent] = useState(false)
@@ -346,7 +369,7 @@ function EmailAuthScreen() {
           ]}
         >
           <Pressable
-            style={[styles.tab, activeTab === 'signin' && styles.activeTab]}
+            style={styles.tab}
             onPress={() => setActiveTab('signin')}
             accessibilityRole="tab"
             accessibilityState={{ selected: activeTab === 'signin' }}
@@ -360,7 +383,7 @@ function EmailAuthScreen() {
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.tab, activeTab === 'signup' && styles.activeTab]}
+            style={styles.tab}
             onPress={() => setActiveTab('signup')}
             accessibilityRole="tab"
             accessibilityState={{ selected: activeTab === 'signup' }}
@@ -373,10 +396,13 @@ function EmailAuthScreen() {
               Sign Up
             </Text>
           </Pressable>
+          <Animated.View style={[styles.tabIndicator, indicatorStyle]} />
         </View>
 
-        <View style={styles.content}>
-          {activeTab === 'signin' ? renderSignIn() : renderSignUp()}
+        <Animated.View entering={FadeInUp.duration(300).delay(50).withInitialValues({ transform: [{ translateY: 10 }] })} style={styles.content}>
+          <Animated.View key={activeTab} entering={FadeIn.duration(200)}>
+            {activeTab === 'signin' ? renderSignIn() : renderSignUp()}
+          </Animated.View>
           <Pressable
             style={styles.backButton}
             onPress={() => router.back()}
@@ -387,7 +413,7 @@ function EmailAuthScreen() {
               Back to sign in options
             </Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </ScrollView>
 
       <Modal
