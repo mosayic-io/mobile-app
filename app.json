@@ -12,7 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.yourcompany.yourappname",
       "associatedDomains": [
-        "applinks:links.mosayic.io"
+        "applinks:links.yourcompany.com"
       ],
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -37,7 +37,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "links.mosayic.io"
+              "host": "links.yourcompany.com"
             }
           ],
           "category": [
