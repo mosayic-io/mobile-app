@@ -109,11 +109,10 @@ function RootLayoutNav() {
     if (!isInitialized || initError) return
 
     const inAuthGroup = segments[0] === '(auth)'
-    const isPasswordReset = segments[1] === 'reset-password'
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/onboarding')
-    } else if (session && inAuthGroup && !isPasswordReset) {
+    } else if (session && inAuthGroup) {
       router.replace('/(tabs)')
     }
   }, [session, isInitialized, segments, router, initError])

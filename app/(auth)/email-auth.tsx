@@ -460,15 +460,15 @@ function EmailAuthScreen() {
                   leftIcon="mail-outline"
                 />
                 <View style={styles.dialogActions}>
-                  <Button onPress={closeResetDialog} variant="ghost" fullWidth>
-                    Cancel
-                  </Button>
                   <Button
                     onPress={resetForm.handleSubmit(onResetPassword)}
                     loading={isLoading || resetForm.formState.isSubmitting}
                     fullWidth
                   >
                     {isLoading || resetForm.formState.isSubmitting ? 'Sending...' : 'Send Link'}
+                  </Button>
+                  <Button onPress={closeResetDialog} variant="ghost" fullWidth>
+                    Cancel
                   </Button>
                 </View>
               </View>
