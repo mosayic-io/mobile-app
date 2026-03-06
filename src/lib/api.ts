@@ -51,9 +51,9 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 }
 
-export async function deleteAuthUser(userId: string): Promise<void> {
+export async function deleteAuthUser(): Promise<void> {
   const token = await getAccessToken()
-  const response = await fetch(`${apiBaseUrl}/auth/users/${userId}`, {
+  const response = await fetch(`${apiBaseUrl}/auth/users/me`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`,

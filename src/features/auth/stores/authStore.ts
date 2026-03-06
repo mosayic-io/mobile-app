@@ -291,13 +291,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true })
 
     try {
-      const userId = get().user?.id
-
-      if (!userId) {
-        throw new Error('No authenticated user found')
-      }
-
-      await deleteAuthUser(userId)
+      await deleteAuthUser()
 
       try {
         await supabase.auth.signOut()
