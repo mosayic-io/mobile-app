@@ -19,7 +19,7 @@
     "production": {
       "distribution": "store",
       "env": {
-        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_URL": "<YOUR_PROD_API_URL_FROM_GCP_CLOUD_RUN>",
         "EXPO_PUBLIC_SUPABASE_URL": "<YOUR_PROD_SUPABASE_URL>",
         "EXPO_PUBLIC_SUPABASE_PUB_KEY": "<YOUR_PROD_SUPABASE_PUBLISHABLE_KEY>",

@@ -34,7 +34,7 @@ Edit `.env` with your Supabase credentials:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 EXPO_PUBLIC_SUPABASE_PUB_KEY=your-anon-key-here
-APP_ENV=development
+EXPO_PUBLIC_APP_ENV=development
 ```
 
 ### 3. Update App Configuration
@@ -93,7 +93,7 @@ For local development, use a `.env` file:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_PUB_KEY=your-anon-key
-APP_ENV=development
+EXPO_PUBLIC_APP_ENV=development
 ```
 
 ### EAS Builds (eas.json)
@@ -105,14 +105,14 @@ For EAS builds, configure environment variables in `eas.json`:
   "build": {
     "development": {
       "env": {
-        "APP_ENV": "development",
+        "EXPO_PUBLIC_APP_ENV": "development",
         "EXPO_PUBLIC_SUPABASE_URL": "your-dev-url",
         "EXPO_PUBLIC_SUPABASE_PUB_KEY": "your-dev-key"
       }
     },
     "production": {
       "env": {
-        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_SUPABASE_URL": "your-prod-url",
         "EXPO_PUBLIC_SUPABASE_PUB_KEY": "your-prod-key"
       }
