@@ -426,7 +426,7 @@ function EmailAuthScreen() {
           <Pressable
             style={[styles.dialogCard, { marginTop: insets.top + spacing.lg }]}
             onPress={(event) => event.stopPropagation()}
-            accessibilityRole="dialog"
+            role="dialog"
           >
             {resetSent ? (
               <View style={styles.dialogContent}>
