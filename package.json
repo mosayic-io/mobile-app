@@ -11,7 +11,6 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "build:dev": "eas build --profile development",
-    "build:preview": "eas build --profile preview",
     "build:prod": "eas build --profile production"
   },
   "dependencies": {
