@@ -1,3 +1,5 @@
+import type { ColorSchemeName } from 'react-native'
+
 export const lightColors = {
   background: '#fff',
   surface: '#f5f5f5',
@@ -6,10 +8,12 @@ export const lightColors = {
   tertiary: '#999',
   border: '#ddd',
   primary: '#000',
-  accent: '#007aff',
+  accent: '#5a5cf0',
   danger: '#ff3b30',
   warning: '#ff9500',
   success: '#34c759',
+  onDanger: '#fff',
+  overlay: 'rgba(0, 0, 0, 0.4)',
 } as const
 
 export const darkColors = {
@@ -20,10 +24,12 @@ export const darkColors = {
   tertiary: '#666',
   border: '#333',
   primary: '#fff',
-  accent: '#0a84ff',
+  accent: '#8285f4',
   danger: '#ff453a',
   warning: '#ff9f0a',
   success: '#30d158',
+  onDanger: '#fff',
+  overlay: 'rgba(0, 0, 0, 0.6)',
 } as const
 
 export type Colors = {
@@ -38,6 +44,8 @@ export type Colors = {
   danger: string
   warning: string
   success: string
+  onDanger: string
+  overlay: string
 }
 
 export const spacing = {
@@ -76,4 +84,14 @@ export type ThemeMode = 'light' | 'dark' | 'system'
 
 export function getColors(isDark: boolean): Colors {
   return isDark ? darkColors : lightColors
+}
+
+// Single source of truth for resolving the effective color scheme.
+// Components should use the useIsDark()/useColors() hooks; this helper exists
+// for non-hook contexts (e.g. class components like ErrorBoundary).
+export function resolveIsDark(
+  mode: ThemeMode,
+  systemScheme: ColorSchemeName | null | undefined
+): boolean {
+  return mode === 'system' ? systemScheme === 'dark' : mode === 'dark'
 }

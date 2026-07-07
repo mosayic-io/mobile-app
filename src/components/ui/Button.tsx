@@ -59,7 +59,7 @@ const createStyles = (colors: Colors) => {
     secondary: { color: colors.text },
     outline: { color: colors.text },
     ghost: { color: colors.text },
-    danger: { color: '#fff' },
+    danger: { color: colors.onDanger },
   } as const
 
   return {
@@ -97,11 +97,16 @@ export function Button({
   const styles = useMemo(() => createStyles(colors), [colors])
 
   const isDisabled = disabled || loading
-  const loaderColor = variant === 'primary' || variant === 'danger' ? colors.background : colors.text
+  const loaderColor =
+    variant === 'danger'
+      ? colors.onDanger
+      : variant === 'primary'
+        ? colors.background
+        : colors.text
 
   const scale = useSharedValue(1)
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.get() }],
   }))
 
   return (
@@ -111,10 +116,10 @@ export function Button({
         accessibilityState={{ disabled: isDisabled }}
         disabled={isDisabled}
         onPressIn={() => {
-          scale.value = withTiming(0.97, { duration: 100 })
+          scale.set(withTiming(0.97, { duration: 100 }))
         }}
         onPressOut={() => {
-          scale.value = withTiming(1, { duration: 150 })
+          scale.set(withTiming(1, { duration: 150 }))
         }}
         style={[
           styles.base.container,

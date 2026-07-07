@@ -11,7 +11,7 @@ A production-ready mobile app template built with Expo Router, Supabase Auth, an
 - **Theming**: Light/dark/system mode support
 - **Error Handling**: Error boundaries for screens and global shell
 - **TypeScript**: Strict type checking throughout
-- **CI/CD**: Codemagic configuration for iOS builds
+- **Social Sign-In**: Native Google and Apple authentication
 
 ## Quick Start
 
@@ -46,9 +46,8 @@ Edit `app.json` and replace placeholder values:
 - `scheme`: Your deep link scheme (lowercase, no special chars)
 - `ios.bundleIdentifier`: Your iOS bundle ID (e.g., `com.yourcompany.yourapp`)
 - `android.package`: Your Android package name
-- `extra.eas.projectId`: Your EAS project ID (run `eas init` to create one)
-- `owner`: Your Expo username
-- `updates.url`: Update with your EAS project ID
+Then run `eas init` to link the project to your Expo account — it fills in
+`extra.eas.projectId` and `owner` for you.
 
 ### 4. Set Up Supabase
 
@@ -165,7 +164,7 @@ Then reference in `eas.json`:
 
 ### Token Storage
 
-Push tokens are automatically stored in the `users.fcm_tokens` column when users sign in.
+Push tokens are automatically stored in the `devices` table (one row per device) when users sign in.
 
 ## Commands
 
@@ -208,7 +207,7 @@ eas update --branch production --message "Description of update"
 
 ```
 ├── app/                    # Expo Router file-based routing
-│   ├── (auth)/             # Auth screens (email-auth, onboarding)
+│   ├── (auth)/             # Auth screens (onboarding, sign-in, email-auth)
 │   ├── (tabs)/             # Tab navigation (home, profile, edit-profile)
 │   └── _layout.tsx         # Root layout with providers
 ├── src/
@@ -260,23 +259,6 @@ export function useYourFeatures(userId: string | undefined) {
 }
 ```
 
-## CI/CD with Codemagic
-
-### Setup
-
-1. Connect your repository to Codemagic
-2. Add App Store Connect API key to Codemagic integrations
-3. Update `codemagic.yaml` with your values:
-   - `bundle_identifier`: Your iOS bundle ID
-   - `XCODE_WORKSPACE`: Your workspace name (matches app name)
-   - `XCODE_SCHEME`: Your scheme name (matches app name)
-   - `APP_ID`: Your App Store Connect app ID
-   - Environment variables for Supabase
-
-### Building
-
-Push to your repository to trigger builds, or manually trigger from Codemagic dashboard.
-
 ## Troubleshooting
 
 ### "Expo Go" Errors
@@ -304,7 +286,7 @@ npx supabase gen types typescript --project-id your-project-id > src/types/datab
 1. Check device is physical (simulators don't support push)
 2. Verify `google-services.json` is present for Android
 3. Verify iOS push credentials in EAS
-4. Check `fcm_tokens` column is being populated
+4. Check rows are being created in the `devices` table
 
 ## License
 

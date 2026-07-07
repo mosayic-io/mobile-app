@@ -28,18 +28,19 @@ These documentation files are specifically formatted for AI agents and should be
 /
 ├── app/                       # Expo Router file-based routing
 │   ├── (auth)/                # Auth screens group (unauthenticated)
-│   │   ├── email-auth.tsx     # Email sign in/sign up screen
 │   │   ├── onboarding.tsx     # Onboarding/welcome screen
+│   │   ├── sign-in.tsx        # Sign-in method selection (Google/Apple/email)
+│   │   ├── email-auth.tsx     # Email sign in/sign up screen
 │   │   └── _layout.tsx        # Auth stack layout
 │   ├── (tabs)/                # Tab-based navigation (authenticated)
 │   │   ├── index.tsx          # Home screen
 │   │   ├── profile.tsx        # Profile screen
 │   │   ├── edit-profile.tsx   # Edit profile screen
 │   │   └── _layout.tsx        # Tabs layout
-│   └── _layout.tsx            # Root layout with providers & auth guard
+│   └── _layout.tsx            # Root layout with providers & auth guard (Stack.Protected)
 ├── src/
 │   ├── components/            # Shared React components
-│   │   ├── ui/                # UI primitives (Button, Input, Text, Avatar)
+│   │   ├── ui/                # UI primitives (Button, Input, Text, Avatar, Card)
 │   │   ├── forms/             # Form components (FormInput with react-hook-form)
 │   │   └── error/             # Error boundaries (ErrorBoundary, ScreenErrorBoundary)
 │   ├── features/              # Feature-based modules
@@ -103,10 +104,11 @@ Reusable, theme-aware building blocks used across the entire application:
 - `Input` - Text input with label, error, and hint support
 - `Text` - Typography component with variants (h1, h2, body, bodySmall, caption)
 - `Avatar` - User avatar component
+- `Card` - Themed surface container for grouping related content
 
 **Usage**: Import from `@/src/components/ui`:
 ```tsx
-import { Button, Text, Input, Avatar } from '@/src/components/ui'
+import { Button, Text, Input, Avatar, Card } from '@/src/components/ui'
 ```
 
 ### Form Components (`src/components/forms/`)
@@ -151,7 +153,8 @@ For components that are only used within a single screen, define them within the
 // Colors (light and dark mode)
 export const lightColors = {
   background, surface, text, secondary, tertiary,
-  border, primary, accent, danger, warning, success
+  border, primary, accent, danger, warning, success,
+  onDanger, overlay
 }
 export const darkColors = { ... }
 
@@ -280,6 +283,7 @@ Use these libraries for their respective purposes. Do not introduce alternative 
 | Backend | `@supabase/supabase-js` | Auth, database, configured in `lib/supabase.ts` |
 | Push Notifications | `expo-notifications` | Configured in `lib/notifications.ts` |
 | Icons | `@expo/vector-icons` | Use Ionicons or other included icon sets |
+| Vector Graphics | `react-native-svg` | Gradients and custom shapes (see onboarding) |
 | Social Auth | `@react-native-google-signin/google-signin`, `expo-apple-authentication` | Google and Apple sign-in |
 
 

@@ -1,88 +1,109 @@
-import { Ionicons } from '@expo/vector-icons'
+import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import {
-  Alert,
-  Dimensions,
-  Image,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native'
-import PagerView from 'react-native-pager-view'
-import Animated, { FadeInUp } from 'react-native-reanimated'
+import { useEffect, useMemo } from 'react'
+import { StyleSheet, View } from 'react-native'
+import Animated, {
+  Easing,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  ZoomIn,
+} from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Defs, RadialGradient, Rect, Stop, Svg } from 'react-native-svg'
 
 import { ScreenErrorBoundary } from '@/src/components/error'
 import { Button, Text } from '@/src/components/ui'
-import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
-import { spacing, type Colors } from '@/src/lib/theme'
+import { borderRadius, spacing, type Colors } from '@/src/lib/theme'
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
-
-const GOOGLE_ICON_SOURCE = require('../../assets/images/google.png')
+const features = ['Supabase auth', 'Push notifications', 'Light & dark theme']
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
     container: {
       flex: 1,
-    },
-    page: {
-      flex: 1,
-      width: SCREEN_WIDTH,
-    },
-    authMethodContent: {
-      flex: 1,
-      justifyContent: 'center',
-      paddingHorizontal: spacing.lg,
       backgroundColor: colors.background,
     },
-    authMethodHeader: {
-      marginBottom: spacing.xl,
-    },
-    authMethodButtons: {
-      gap: spacing.md,
-    },
-    dividerContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginVertical: spacing.lg,
-    },
-    dividerLine: {
+    content: {
       flex: 1,
-      height: 1,
-      backgroundColor: colors.border,
-    },
-    dividerText: {
-      marginHorizontal: spacing.md,
-    },
-    backButton: {
-      marginTop: spacing.lg,
+      justifyContent: 'center',
       alignItems: 'center',
+      paddingHorizontal: spacing.lg,
     },
-    socialIcon: {
-      width: 18,
-      height: 18,
+    logoContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.lg,
+    },
+    glow: {
+      position: 'absolute',
+      width: 220,
+      height: 220,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.accent,
+      opacity: 0.14,
+    },
+    logo: {
+      width: 96,
+      height: 96,
+    },
+    title: {
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    subtitle: {
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.lg,
+    },
+    chip: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    footer: {
+      paddingHorizontal: spacing.lg,
     },
   })
 
-// ============================================================================
-// Welcome Page Component
-// ============================================================================
-function WelcomePage({
-  onGetStarted,
-  colors,
-}: {
-  onGetStarted: () => void
-  colors: Colors
-}) {
-  const styles = useMemo(() => createWelcomeStyles(colors), [colors])
+function OnboardingScreen() {
+  const colors = useColors()
+  const styles = useMemo(() => createStyles(colors), [colors])
+  const insets = useSafeAreaInsets()
+  const router = useRouter()
+
+  const float = useSharedValue(0)
+
+  // Gentle vertical drift on the logo, mirrored by withRepeat's reverse pass
+  useEffect(() => {
+    float.set(
+      withRepeat(
+        withTiming(-8, { duration: 2200, easing: Easing.inOut(Easing.quad) }),
+        -1,
+        true
+      )
+    )
+  }, [float])
+
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: float.get() }],
+  }))
 
   return (
     <View style={styles.container}>
-      <Svg width="100%" height="100%" style={styles.background}>
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <RadialGradient id="softGlow" cx="80%" cy="20%" rx="65%" ry="65%">
             <Stop offset="0%" stopColor={colors.accent} stopOpacity="0.16" />
@@ -93,236 +114,63 @@ function WelcomePage({
         <Rect width="100%" height="100%" fill={colors.background} />
         <Rect width="100%" height="100%" fill="url(#softGlow)" />
       </Svg>
+
       <View style={styles.content}>
-        <Animated.View entering={FadeInUp.duration(350).delay(100).withInitialValues({ transform: [{ translateY: 10 }] })}>
+        <View style={styles.logoContainer}>
+          <View style={styles.glow} />
+          <Animated.View entering={ZoomIn.springify().damping(12)}>
+            <Animated.View style={floatStyle}>
+              <Image
+                source={require('../../assets/images/logo.png')}
+                style={styles.logo}
+                contentFit="contain"
+              />
+            </Animated.View>
+          </Animated.View>
+        </View>
+
+        <Animated.View entering={FadeInDown.delay(150).duration(600)}>
           <Text variant="h1" style={styles.title}>
             Welcome to Your App
           </Text>
         </Animated.View>
-        <Animated.View entering={FadeInUp.duration(350).delay(200).withInitialValues({ transform: [{ translateY: 10 }] })}>
-          <Text variant="body" style={styles.subtitle}>
-            This is placeholder copy for your onboarding experience.
-            Customize this text to match your app&apos;s value proposition.
+
+        <Animated.View entering={FadeInDown.delay(300).duration(600)}>
+          <Text variant="body" color="secondary" style={styles.subtitle}>
+            This is placeholder copy for your onboarding experience. Customize
+            it to match your app&apos;s value proposition.
           </Text>
         </Animated.View>
-        <Animated.View entering={FadeInUp.duration(350).delay(300).withInitialValues({ transform: [{ translateY: 10 }] })} style={{ width: '100%' }}>
-          <Button
-            onPress={onGetStarted}
-            fullWidth
-            variant="primary"
-            accessibilityLabel="Get started"
-            accessibilityHint="Double tap to continue to sign in options"
-          >
-            Get Started
-          </Button>
-        </Animated.View>
+
+        <View style={styles.chipRow}>
+          {features.map((feature, index) => (
+            <Animated.View
+              key={feature}
+              entering={FadeInDown.delay(450 + index * 100).duration(600)}
+              style={styles.chip}
+            >
+              <Text variant="caption">{feature}</Text>
+            </Animated.View>
+          ))}
+        </View>
       </View>
+
+      <Animated.View
+        entering={FadeInDown.delay(750).duration(600)}
+        style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}
+      >
+        <Button
+          onPress={() => router.push('/(auth)/sign-in')}
+          fullWidth
+          size="lg"
+          variant="primary"
+          accessibilityLabel="Get started"
+          accessibilityHint="Double tap to continue to sign in options"
+        >
+          Get Started
+        </Button>
+      </Animated.View>
     </View>
-  )
-}
-
-const createWelcomeStyles = (colors: Colors) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    background: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    content: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: spacing.lg,
-    },
-    title: {
-      color: colors.text,
-      marginBottom: spacing.sm,
-      textAlign: 'center',
-    },
-    subtitle: {
-      color: colors.secondary,
-      marginBottom: spacing.xl,
-      textAlign: 'center',
-    },
-  })
-
-// ============================================================================
-// Auth Method Selection Page Component
-// ============================================================================
-function AuthMethodPage({
-  onContinueWithEmail,
-  onContinueWithGoogle,
-  onContinueWithApple,
-  onBack,
-  isLoading,
-  colors,
-  isActive,
-}: {
-  onContinueWithEmail: () => void
-  onContinueWithGoogle: () => void
-  onContinueWithApple: () => void
-  onBack: () => void
-  isLoading: boolean
-  colors: Colors
-  isActive: boolean
-}) {
-  const styles = useMemo(() => createStyles(colors), [colors])
-
-  return (
-    <View style={[styles.page, styles.authMethodContent]}>
-      {isActive && (
-        <>
-          <Animated.View entering={FadeInUp.duration(300).delay(50).withInitialValues({ transform: [{ translateY: 10 }] })} style={styles.authMethodHeader}>
-            <Text variant="h1" style={{ marginBottom: spacing.sm }}>
-              How would you like to continue?
-            </Text>
-            <Text variant="body" color="secondary">
-              Choose your preferred sign in method
-            </Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.duration(300).delay(150).withInitialValues({ transform: [{ translateY: 10 }] })} style={styles.authMethodButtons}>
-            <Button
-              variant="outline"
-              onPress={onContinueWithGoogle}
-              disabled={isLoading}
-              fullWidth
-              leftIcon={<Image source={GOOGLE_ICON_SOURCE} style={styles.socialIcon} />}
-              accessibilityLabel="Continue with Google"
-              accessibilityHint="Double tap to sign in with your Google account"
-            >
-              Continue with Google
-            </Button>
-
-            {Platform.OS === 'ios' && (
-              <Button
-                variant="outline"
-                onPress={onContinueWithApple}
-                disabled={isLoading}
-                fullWidth
-                leftIcon={<Ionicons name="logo-apple" size={18} color={colors.text} />}
-                accessibilityLabel="Continue with Apple"
-                accessibilityHint="Double tap to sign in with your Apple account"
-              >
-                Continue with Apple
-              </Button>
-            )}
-
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text variant="bodySmall" color="secondary" style={styles.dividerText}>
-                or
-              </Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <Button
-              variant="primary"
-              onPress={onContinueWithEmail}
-              disabled={isLoading}
-              fullWidth
-              accessibilityLabel="Continue with Email"
-              accessibilityHint="Double tap to sign in with your email address"
-            >
-              Continue with Email
-            </Button>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.duration(300).delay(250).withInitialValues({ transform: [{ translateY: 10 }] })}>
-            <Pressable
-              style={styles.backButton}
-              onPress={onBack}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Text variant="bodySmall" color="secondary">
-                Back
-              </Text>
-            </Pressable>
-          </Animated.View>
-        </>
-      )}
-    </View>
-  )
-}
-
-// ============================================================================
-// Main Onboarding Screen
-// ============================================================================
-function OnboardingScreen() {
-  const colors = useColors()
-  const pagerRef = useRef<PagerView>(null)
-  const router = useRouter()
-
-  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle)
-  const signInWithApple = useAuthStore((state) => state.signInWithApple)
-  const isLoading = useAuthStore((state) => state.isLoading)
-
-  const [authPageActive, setAuthPageActive] = useState(false)
-
-  const goToPage = useCallback((page: number) => {
-    pagerRef.current?.setPage(page)
-  }, [])
-
-  const onGoogleSignIn = useCallback(async () => {
-    try {
-      await signInWithGoogle()
-    } catch (error) {
-      Alert.alert(
-        'Google Sign In Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
-    }
-  }, [signInWithGoogle])
-
-  const onAppleSignIn = useCallback(async () => {
-    try {
-      await signInWithApple()
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Sign in was cancelled') {
-        return
-      }
-      Alert.alert(
-        'Apple Sign In Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
-    }
-  }, [signInWithApple])
-
-  const onContinueWithEmail = useCallback(() => {
-    router.push('/(auth)/email-auth')
-  }, [router])
-
-  return (
-    <PagerView
-      ref={pagerRef}
-      style={{ flex: 1 }}
-      initialPage={0}
-      scrollEnabled={false}
-      onPageSelected={(e) => {
-        setAuthPageActive(e.nativeEvent.position === 1)
-      }}
-    >
-      {/* Page 0: Welcome */}
-      <View key="welcome" style={{ flex: 1 }}>
-        <WelcomePage onGetStarted={() => goToPage(1)} colors={colors} />
-      </View>
-
-      {/* Page 1: Auth Method Selection */}
-      <View key="auth-method" style={{ flex: 1 }}>
-        <AuthMethodPage
-          onContinueWithEmail={onContinueWithEmail}
-          onContinueWithGoogle={onGoogleSignIn}
-          onContinueWithApple={onAppleSignIn}
-          onBack={() => goToPage(0)}
-          isLoading={isLoading}
-          colors={colors}
-          isActive={authPageActive}
-        />
-      </View>
-    </PagerView>
   )
 }
 

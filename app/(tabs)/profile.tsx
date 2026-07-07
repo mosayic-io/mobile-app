@@ -123,7 +123,6 @@ function ProfileScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
-      accessibilityRole="scrollbar"
     >
       <View style={styles.header}>
         <Avatar

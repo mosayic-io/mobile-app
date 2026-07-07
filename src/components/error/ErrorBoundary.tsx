@@ -3,7 +3,7 @@ import { Appearance, StyleSheet, View } from 'react-native'
 
 import { Button } from '@/src/components/ui/Button'
 import { Text } from '@/src/components/ui/Text'
-import { getColors, spacing, type Colors } from '@/src/lib/theme'
+import { borderRadius, getColors, resolveIsDark, spacing, type Colors } from '@/src/lib/theme'
 import { useThemeStore } from '@/src/stores/themeStore'
 
 type ErrorBoundaryProps = {
@@ -41,8 +41,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   private getColors(): Colors {
     const mode = useThemeStore.getState().mode
     const systemScheme = Appearance.getColorScheme()
-    const isDark = mode === 'dark' || (mode === 'system' && systemScheme === 'dark')
-    return getColors(isDark)
+    return getColors(resolveIsDark(mode, systemScheme))
   }
 
   private getStyles(colors: Colors) {
@@ -68,7 +67,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         marginBottom: spacing.lg,
         padding: spacing.md,
         backgroundColor: colors.surface,
-        borderRadius: 8,
+        borderRadius: borderRadius.sm,
         maxWidth: '100%',
       },
       errorText: {

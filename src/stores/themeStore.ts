@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useSyncExternalStore } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -29,3 +30,14 @@ export const useThemeStore = create<ThemeStore>()(
     }
   )
 )
+
+// True once the persisted theme has been read back from AsyncStorage.
+// The root layout holds the splash screen until then so the first frame
+// renders in the correct theme.
+export function useThemeHydration(): boolean {
+  return useSyncExternalStore(
+    (onStoreChange) => useThemeStore.persist.onFinishHydration(onStoreChange),
+    () => useThemeStore.persist.hasHydrated(),
+    () => false
+  )
+}

@@ -1,11 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   Alert,
-  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -16,7 +15,7 @@ import {
 } from 'react-native'
 import Animated, {
   FadeIn,
-  FadeInUp,
+  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -25,21 +24,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ScreenErrorBoundary } from '@/src/components/error'
 import { FormInput } from '@/src/components/forms'
-import { Button, Input, Text } from '@/src/components/ui'
+import { Button, Text } from '@/src/components/ui'
 import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
-import { spacing, type Colors } from '@/src/lib/theme'
+import { borderRadius, spacing, type Colors } from '@/src/lib/theme'
 import {
   forgotPasswordSchema,
   signInSchema,
   signUpSchema,
   type ForgotPasswordFormData,
   type SignInFormData,
+  type SignUpFormData,
 } from '@/src/lib/validations/auth'
 
 type ActiveTab = 'signin' | 'signup'
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
+const SEGMENT_PADDING = spacing.xs
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
@@ -49,59 +49,68 @@ const createStyles = (colors: Colors) =>
     },
     scrollContent: {
       flexGrow: 1,
-    },
-    tabContainer: {
-      flexDirection: 'row',
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    tab: {
-      flex: 1,
-      paddingVertical: spacing.md,
-      alignItems: 'center',
-    },
-    tabIndicator: {
-      position: 'absolute',
-      bottom: 0,
-      height: 2,
-      width: '50%',
-      backgroundColor: colors.accent,
-    },
-    content: {
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.xl,
-      gap: spacing.lg,
+    },
+    backRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: spacing.xs,
+      paddingVertical: spacing.sm,
+    },
+    segmentTrack: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.full,
+      padding: SEGMENT_PADDING,
+      marginTop: spacing.md,
+      marginBottom: spacing.xl,
+    },
+    segmentThumb: {
+      position: 'absolute',
+      top: SEGMENT_PADDING,
+      bottom: SEGMENT_PADDING,
+      left: SEGMENT_PADDING,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    segment: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
     },
     form: {
       gap: spacing.md,
+    },
+    formHeader: {
+      marginBottom: spacing.sm,
+    },
+    formTitle: {
+      marginBottom: spacing.xs,
     },
     forgotPassword: {
       alignItems: 'center',
       marginTop: spacing.sm,
     },
-    backButton: {
-      alignItems: 'center',
-      marginTop: spacing.sm,
-    },
     dialogOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      backgroundColor: colors.overlay,
       justifyContent: 'center',
       paddingHorizontal: spacing.lg,
     },
     dialogCard: {
       backgroundColor: colors.background,
-      borderRadius: 20,
+      borderRadius: borderRadius.lg,
       padding: spacing.lg,
       gap: spacing.md,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.18,
-      shadowRadius: 16,
-      elevation: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     dialogContent: {
       gap: spacing.md,
+      alignItems: 'center',
     },
     dialogTitle: {
       textAlign: 'center',
@@ -111,6 +120,7 @@ const createStyles = (colors: Colors) =>
     },
     dialogActions: {
       gap: spacing.sm,
+      width: '100%',
     },
   })
 
@@ -120,20 +130,24 @@ function EmailAuthScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<ActiveTab>('signin')
+  const [trackWidth, setTrackWidth] = useState(0)
 
   const signIn = useAuthStore((state) => state.signIn)
   const signUp = useAuthStore((state) => state.signUp)
   const resetPassword = useAuthStore((state) => state.resetPassword)
   const isLoading = useAuthStore((state) => state.isLoading)
 
-  const tabOffset = useSharedValue(0)
+  // 0 = sign in, 1 = sign up; drives the segmented-control thumb
+  const tabPosition = useSharedValue(0)
+  const segmentWidth = Math.max(0, (trackWidth - SEGMENT_PADDING * 2) / 2)
 
-  useEffect(() => {
-    tabOffset.value = withTiming(activeTab === 'signin' ? 0 : 1, { duration: 250 })
-  }, [activeTab, tabOffset])
+  const selectTab = (tab: ActiveTab) => {
+    setActiveTab(tab)
+    tabPosition.set(withTiming(tab === 'signin' ? 0 : 1, { duration: 220 }))
+  }
 
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tabOffset.value * (SCREEN_WIDTH / 2) }],
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tabPosition.get() * segmentWidth }],
   }))
 
   const [showResetDialog, setShowResetDialog] = useState(false)
@@ -145,59 +159,30 @@ function EmailAuthScreen() {
     defaultValues: { email: '', password: '' },
   })
 
-  const signUpEmailRef = useRef('')
-  const signUpPasswordRef = useRef('')
-  const signUpConfirmRef = useRef('')
-  const [signUpErrors, setSignUpErrors] = useState<{
-    email?: string
-    password?: string
-    confirmPassword?: string
-  }>({})
-  const [isSignUpSubmitting, setIsSignUpSubmitting] = useState(false)
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { email: '', password: '', confirmPassword: '' },
+  })
 
   const resetForm = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   })
 
-  const onSignIn = useCallback(
-    async (data: SignInFormData) => {
-      try {
-        await signIn(data.email, data.password)
-      } catch (error) {
-        Alert.alert(
-          'Sign In Failed',
-          error instanceof Error ? error.message : 'An unexpected error occurred'
-        )
-      }
-    },
-    [signIn]
-  )
-
-  const onSignUp = useCallback(async () => {
-    const payload = {
-      email: signUpEmailRef.current.trim(),
-      password: signUpPasswordRef.current,
-      confirmPassword: signUpConfirmRef.current,
-    }
-
-    const result = signUpSchema.safeParse(payload)
-    if (!result.success) {
-      const nextErrors: typeof signUpErrors = {}
-      for (const issue of result.error.issues) {
-        const field = issue.path[0]
-        if (field && typeof field === 'string') {
-          nextErrors[field as keyof typeof nextErrors] = issue.message
-        }
-      }
-      setSignUpErrors(nextErrors)
-      return
-    }
-
-    setSignUpErrors({})
-    setIsSignUpSubmitting(true)
+  const onSignIn = async (data: SignInFormData) => {
     try {
-      await signUp(payload.email, payload.password)
+      await signIn(data.email, data.password)
+    } catch (error) {
+      Alert.alert(
+        'Sign In Failed',
+        error instanceof Error ? error.message : 'An unexpected error occurred'
+      )
+    }
+  }
+
+  const onSignUp = async (data: SignUpFormData) => {
+    try {
+      await signUp(data.email.trim(), data.password)
       Alert.alert(
         'Check your email',
         'We sent you a confirmation link to verify your account.'
@@ -207,40 +192,39 @@ function EmailAuthScreen() {
         'Sign Up Failed',
         error instanceof Error ? error.message : 'An unexpected error occurred'
       )
-    } finally {
-      setIsSignUpSubmitting(false)
     }
-  }, [signUp])
+  }
 
-  const onResetPassword = useCallback(
-    async (data: ForgotPasswordFormData) => {
-      try {
-        await resetPassword(data.email)
-        setResetEmail(data.email)
-        setResetSent(true)
-      } catch (error) {
-        Alert.alert(
-          'Reset Failed',
-          error instanceof Error ? error.message : 'Failed to send reset email'
-        )
-      }
-    },
-    [resetPassword]
-  )
+  const onResetPassword = async (data: ForgotPasswordFormData) => {
+    try {
+      await resetPassword(data.email)
+      setResetEmail(data.email)
+      setResetSent(true)
+    } catch (error) {
+      Alert.alert(
+        'Reset Failed',
+        error instanceof Error ? error.message : 'Failed to send reset email'
+      )
+    }
+  }
 
-  const closeResetDialog = useCallback(() => {
+  const closeResetDialog = () => {
     setShowResetDialog(false)
     setResetSent(false)
     setResetEmail('')
     resetForm.reset({ email: '' })
-  }, [resetForm])
+  }
 
   const renderSignIn = () => (
     <View style={styles.form}>
-      <Text variant="h1">Welcome back</Text>
-      <Text variant="body" color="secondary">
-        Sign in to continue.
-      </Text>
+      <View style={styles.formHeader}>
+        <Text variant="h1" style={styles.formTitle}>
+          Welcome back
+        </Text>
+        <Text variant="body" color="secondary">
+          Sign in to continue.
+        </Text>
+      </View>
       <FormInput
         control={signInForm.control}
         name="email"
@@ -264,6 +248,7 @@ function EmailAuthScreen() {
         onPress={signInForm.handleSubmit(onSignIn)}
         loading={isLoading || signInForm.formState.isSubmitting}
         fullWidth
+        size="lg"
         accessibilityLabel="Sign in to your account"
       >
         {isLoading || signInForm.formState.isSubmitting ? 'Signing in...' : 'Sign In'}
@@ -275,7 +260,7 @@ function EmailAuthScreen() {
         accessibilityHint="Double tap to reset your password"
         onPress={() => setShowResetDialog(true)}
       >
-        <Text variant="bodySmall" color="secondary">
+        <Text variant="bodySmall" color="accent">
           Forgot password?
         </Text>
       </Pressable>
@@ -284,73 +269,53 @@ function EmailAuthScreen() {
 
   const renderSignUp = () => (
     <View style={styles.form}>
-      <Text variant="h1">Create your account</Text>
-      <Text variant="body" color="secondary">
-        Join us in a few quick steps.
-      </Text>
-      <Input
+      <View style={styles.formHeader}>
+        <Text variant="h1" style={styles.formTitle}>
+          Create your account
+        </Text>
+        <Text variant="body" color="secondary">
+          Join us in a few quick steps.
+        </Text>
+      </View>
+      <FormInput
+        control={signUpForm.control}
+        name="email"
         label="Email"
         placeholder="Enter your email"
         autoCapitalize="none"
-        autoComplete="off"
-        textContentType="none"
-        autoCorrect={false}
-        spellCheck={false}
-        importantForAutofill="no"
+        autoComplete="email"
         keyboardType="email-address"
         leftIcon="mail-outline"
-        onChangeText={(value) => {
-          signUpEmailRef.current = value
-          if (signUpErrors.email) {
-            setSignUpErrors((prev) => ({ ...prev, email: undefined }))
-          }
-        }}
-        error={signUpErrors.email}
       />
-      <Input
+      <FormInput
+        control={signUpForm.control}
+        name="password"
         label="Password"
         placeholder="Create a password"
         secureTextEntry
-        autoComplete="off"
-        textContentType="none"
-        autoCorrect={false}
-        spellCheck={false}
-        importantForAutofill="no"
+        autoComplete="new-password"
+        textContentType="newPassword"
         leftIcon="lock-closed-outline"
         hint="Must be at least 6 characters"
-        onChangeText={(value) => {
-          signUpPasswordRef.current = value
-          if (signUpErrors.password) {
-            setSignUpErrors((prev) => ({ ...prev, password: undefined }))
-          }
-        }}
-        error={signUpErrors.password}
       />
-      <Input
+      <FormInput
+        control={signUpForm.control}
+        name="confirmPassword"
         label="Confirm Password"
         placeholder="Confirm your password"
         secureTextEntry
-        autoComplete="off"
-        textContentType="none"
-        autoCorrect={false}
-        spellCheck={false}
-        importantForAutofill="no"
+        autoComplete="new-password"
+        textContentType="newPassword"
         leftIcon="lock-closed-outline"
-        onChangeText={(value) => {
-          signUpConfirmRef.current = value
-          if (signUpErrors.confirmPassword) {
-            setSignUpErrors((prev) => ({ ...prev, confirmPassword: undefined }))
-          }
-        }}
-        error={signUpErrors.confirmPassword}
       />
       <Button
-        onPress={onSignUp}
-        loading={isLoading || isSignUpSubmitting}
+        onPress={signUpForm.handleSubmit(onSignUp)}
+        loading={isLoading || signUpForm.formState.isSubmitting}
         fullWidth
+        size="lg"
         accessibilityLabel="Create your account"
       >
-        {isLoading || isSignUpSubmitting ? 'Creating account...' : 'Sign Up'}
+        {isLoading || signUpForm.formState.isSubmitting ? 'Creating account...' : 'Sign Up'}
       </Button>
     </View>
   )
@@ -358,61 +323,69 @@ function EmailAuthScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={insets.top}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View
-          style={[
-            styles.tabContainer,
-            { paddingTop: insets.top + spacing.sm, paddingBottom: spacing.sm },
-          ]}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + spacing.lg },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Pressable
+          style={styles.backRow}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Back to sign in options"
         >
+          <Ionicons name="chevron-back" size={18} color={colors.secondary} />
+          <Text variant="bodySmall" color="secondary">
+            Back
+          </Text>
+        </Pressable>
+
+        <View
+          style={styles.segmentTrack}
+          onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+          accessibilityRole="tablist"
+        >
+          {segmentWidth > 0 && (
+            <Animated.View
+              style={[styles.segmentThumb, { width: segmentWidth }, thumbStyle]}
+            />
+          )}
           <Pressable
-            style={styles.tab}
-            onPress={() => setActiveTab('signin')}
+            style={styles.segment}
+            onPress={() => selectTab('signin')}
             accessibilityRole="tab"
             accessibilityState={{ selected: activeTab === 'signin' }}
           >
             <Text
-              variant="body"
+              variant="bodySmall"
               weight={activeTab === 'signin' ? 'semibold' : 'normal'}
-              color={activeTab === 'signin' ? 'accent' : 'secondary'}
+              color={activeTab === 'signin' ? 'primary' : 'secondary'}
             >
               Sign In
             </Text>
           </Pressable>
           <Pressable
-            style={styles.tab}
-            onPress={() => setActiveTab('signup')}
+            style={styles.segment}
+            onPress={() => selectTab('signup')}
             accessibilityRole="tab"
             accessibilityState={{ selected: activeTab === 'signup' }}
           >
             <Text
-              variant="body"
+              variant="bodySmall"
               weight={activeTab === 'signup' ? 'semibold' : 'normal'}
-              color={activeTab === 'signup' ? 'accent' : 'secondary'}
+              color={activeTab === 'signup' ? 'primary' : 'secondary'}
             >
               Sign Up
             </Text>
           </Pressable>
-          <Animated.View style={[styles.tabIndicator, indicatorStyle]} />
         </View>
 
-        <Animated.View entering={FadeInUp.duration(300).delay(50).withInitialValues({ transform: [{ translateY: 10 }] })} style={styles.content}>
-          <Animated.View key={activeTab} entering={FadeIn.duration(200)}>
-            {activeTab === 'signin' ? renderSignIn() : renderSignUp()}
-          </Animated.View>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Back to sign in options"
-          >
-            <Text variant="bodySmall" color="secondary">
-              Back to sign in options
-            </Text>
-          </Pressable>
+        <Animated.View key={activeTab} entering={FadeIn.duration(220)}>
+          {activeTab === 'signin' ? renderSignIn() : renderSignUp()}
         </Animated.View>
       </ScrollView>
 
@@ -424,12 +397,12 @@ function EmailAuthScreen() {
       >
         <Pressable style={styles.dialogOverlay} onPress={closeResetDialog}>
           <Pressable
-            style={[styles.dialogCard, { marginTop: insets.top + spacing.lg }]}
+            style={styles.dialogCard}
             onPress={(event) => event.stopPropagation()}
-            role="dialog"
+            accessibilityViewIsModal
           >
             {resetSent ? (
-              <View style={styles.dialogContent}>
+              <Animated.View entering={FadeInDown.duration(250)} style={styles.dialogContent}>
                 <Ionicons name="mail-open-outline" size={32} color={colors.success} />
                 <Text variant="h2" style={styles.dialogTitle}>
                   Check Your Email
@@ -437,10 +410,12 @@ function EmailAuthScreen() {
                 <Text variant="body" color="secondary" style={styles.dialogMessage}>
                   We&apos;ve sent a reset link to {resetEmail}
                 </Text>
-                <Button onPress={closeResetDialog} fullWidth>
-                  Done
-                </Button>
-              </View>
+                <View style={styles.dialogActions}>
+                  <Button onPress={closeResetDialog} fullWidth>
+                    Done
+                  </Button>
+                </View>
+              </Animated.View>
             ) : (
               <View style={styles.dialogContent}>
                 <Text variant="h2" style={styles.dialogTitle}>

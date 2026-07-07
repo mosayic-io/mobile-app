@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Alert, ScrollView, StyleSheet, View } from 'react-native'
 
 import { Button, Input, Text } from '@/src/components/ui'
@@ -61,17 +61,14 @@ function EditProfileScreen() {
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
 
-  const [displayName, setDisplayName] = useState('')
+  // null means "not edited yet" — fall back to the profile value once it loads
+  const [displayNameInput, setDisplayNameInput] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  useEffect(() => {
-    if (profile?.display_name !== undefined && profile?.display_name !== null) {
-      setDisplayName(profile.display_name)
-    }
-  }, [profile?.display_name])
+  const displayName = displayNameInput ?? profile?.display_name ?? ''
 
-  const handleSaveProfile = useCallback(async () => {
+  const handleSaveProfile = async () => {
     if (!user?.id) {
       Alert.alert('Profile Update Failed', 'No authenticated user found.')
       return
@@ -93,9 +90,9 @@ function EditProfileScreen() {
         error instanceof Error ? error.message : 'An unexpected error occurred'
       )
     }
-  }, [displayName, updateProfile, user?.id])
+  }
 
-  const handleUpdatePassword = useCallback(async () => {
+  const handleUpdatePassword = async () => {
     if (!newPassword) {
       Alert.alert('Password Required', 'Enter a new password to continue.')
       return
@@ -117,9 +114,9 @@ function EditProfileScreen() {
         error instanceof Error ? error.message : 'An unexpected error occurred'
       )
     }
-  }, [confirmPassword, newPassword, updatePassword])
+  }
 
-  const handleResetPassword = useCallback(async () => {
+  const handleResetPassword = async () => {
     if (!user?.email) {
       Alert.alert('Reset Failed', 'No email address found for this account.')
       return
@@ -134,9 +131,9 @@ function EditProfileScreen() {
         error instanceof Error ? error.message : 'An unexpected error occurred'
       )
     }
-  }, [resetPassword, user?.email])
+  }
 
-  const handleDeleteAccount = useCallback(() => {
+  const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
       'This will permanently delete your account and all associated data. This action cannot be undone.',
@@ -158,13 +155,12 @@ function EditProfileScreen() {
         },
       ]
     )
-  }, [deleteAccount])
+  }
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      accessibilityRole="scrollbar"
     >
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -185,7 +181,7 @@ function EditProfileScreen() {
           placeholder="Display name"
           accessibilityLabel="Display name"
           value={displayName}
-          onChangeText={setDisplayName}
+          onChangeText={setDisplayNameInput}
           autoCapitalize="words"
           returnKeyType="done"
         />

@@ -1,3 +1,4 @@
+export { requireEnv } from './env'
 export { queryClient } from './queryClient'
 export { supabase } from './supabase'
 export * from './theme'

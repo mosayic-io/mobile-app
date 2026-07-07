@@ -9,41 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      items: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          user_id: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          user_id: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          user_id?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'items_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
-          }
-        ]
-      }
       users: {
         Row: {
           created_at: string | null
@@ -69,15 +34,7 @@ export type Database = {
           photo_url?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: 'user_profiles_id_fkey'
-            columns: ['id']
-            isOneToOne: true
-            referencedRelation: 'users'
-            referencedColumns: ['id']
-          }
-        ]
+        Relationships: []
       }
       devices: {
         Row: {
@@ -120,7 +77,11 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      update_updated_at_column: {
+      handle_deleted_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      handle_updated_at: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -151,7 +112,3 @@ export type UserUpdate = TablesUpdate<'users'>
 export type Device = Tables<'devices'>
 export type DeviceInsert = TablesInsert<'devices'>
 export type DeviceUpdate = TablesUpdate<'devices'>
-
-export type Item = Tables<'items'>
-export type ItemInsert = TablesInsert<'items'>
-export type ItemUpdate = TablesUpdate<'items'>

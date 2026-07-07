@@ -1,29 +1,11 @@
-import Constants from 'expo-constants'
-
+import { requireEnv } from '@/src/lib/env'
 import { supabase } from '@/src/lib/supabase'
 
-function readEnv(envValue: string | undefined, extraKey: string): string | undefined {
-  const extra = Constants.expoConfig?.extra as Record<string, string | undefined> | undefined
-
-  return (
-    envValue ??
-    // Allow falling back to values provided in app.json/app.config extra
-    extra?.[extraKey]
-  )
-}
-
-function requireEnv(envValue: string | undefined, extraKey: string, envKey: string): string {
-  const value = readEnv(envValue, extraKey)
-
-  if (!value) {
-    const hint = `Set ${envKey} in your environment or app.json extra.`
-    throw new Error(`Missing required environment variable: ${envKey}. ${hint}`)
-  }
-
-  return value.replace(/\/+$/, '')
-}
-
-const apiBaseUrl = requireEnv(process.env.EXPO_PUBLIC_API_URL, 'apiUrl', 'EXPO_PUBLIC_API_URL')
+const apiBaseUrl = requireEnv(
+  process.env.EXPO_PUBLIC_API_URL,
+  'apiUrl',
+  'EXPO_PUBLIC_API_URL'
+).replace(/\/+$/, '')
 
 async function getAccessToken(): Promise<string> {
   const { data, error } = await supabase.auth.getSession()

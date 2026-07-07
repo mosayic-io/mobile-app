@@ -1,7 +1,8 @@
-import { Slot, useRouter, useSegments } from 'expo-router'
+import { Stack } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo } from 'react'
-import { ActivityIndicator, AppState, type AppStateStatus, StyleSheet, View } from 'react-native'
+import { AppState, type AppStateStatus, StyleSheet, View } from 'react-native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -11,21 +12,10 @@ import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
 import { ErrorBoundary } from '@/src/components/error'
 import { Button, Text } from '@/src/components/ui'
-import { useNotificationStore } from '@/src/stores/notificationStore'
+import { useNotificationStore, useThemeHydration } from '@/src/stores'
+import { spacing } from '@/src/lib/theme'
 
-function LoadingScreen() {
-  const colors = useColors()
-
-  return (
-    <View
-      style={[styles.loadingContainer, { backgroundColor: colors.background }]}
-      accessibilityRole="progressbar"
-      accessibilityLabel="Loading application"
-    >
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  )
-}
+SplashScreen.preventAutoHideAsync()
 
 function InitializationError({
   message,
@@ -42,11 +32,11 @@ function InitializationError({
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          padding: 24,
+          padding: spacing.lg,
           backgroundColor: colors.background,
         },
         message: {
-          marginVertical: 16,
+          marginVertical: spacing.md,
           textAlign: 'center',
         },
       }),
@@ -73,8 +63,7 @@ function RootLayoutNav() {
   const initialize = useAuthStore((state) => state.initialize)
   const setupAuthListener = useAuthStore((state) => state.setupAuthListener)
   const ensureToken = useNotificationStore((state) => state.ensureToken)
-  const segments = useSegments()
-  const router = useRouter()
+  const themeHydrated = useThemeHydration()
 
   // Set up auth listener on mount
   useEffect(() => {
@@ -104,18 +93,15 @@ function RootLayoutNav() {
     return () => subscription.remove()
   }, [ensureToken, session?.user?.id])
 
-  // Handle navigation based on auth state
+  const isReady = isInitialized && themeHydrated
+
+  // Hold the splash screen until the session and persisted theme have loaded,
+  // so the first frame is the right screen in the right theme.
   useEffect(() => {
-    if (!isInitialized || initError) return
-
-    const inAuthGroup = segments[0] === '(auth)'
-
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/onboarding')
-    } else if (session && inAuthGroup) {
-      router.replace('/(tabs)')
+    if (isReady) {
+      SplashScreen.hideAsync()
     }
-  }, [session, isInitialized, segments, router, initError])
+  }, [isReady])
 
   if (initError) {
     return (
@@ -128,11 +114,20 @@ function RootLayoutNav() {
     )
   }
 
-  if (!isInitialized) {
-    return <LoadingScreen />
+  if (!isReady) {
+    return null
   }
 
-  return <Slot />
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+    </Stack>
+  )
 }
 
 export default function RootLayout() {
@@ -153,10 +148,5 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 })
