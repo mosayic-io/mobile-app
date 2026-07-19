@@ -151,7 +151,7 @@ Then reference in `eas.json`:
 1. Create a Firebase project at https://console.firebase.google.com
 2. Add an Android app with your package name
 3. Download `google-services.json` and place it in the project root
-4. The file is already referenced in `app.json`
+4. Add `"googleServicesFile": "./google-services.json"` to the `android` section of `app.json` (the template deliberately omits it until the real file exists — a missing or placeholder file fails the Android build)
 
 ### iOS Setup
 
@@ -284,7 +284,7 @@ npx supabase gen types typescript --project-id your-project-id > src/types/datab
 ### Push Notifications Not Working
 
 1. Check device is physical (simulators don't support push)
-2. Verify `google-services.json` is present for Android
+2. Verify `google-services.json` is present for Android and referenced via `googleServicesFile` in `app.json`
 3. Verify iOS push credentials in EAS
 4. Check rows are being created in the `devices` table
 

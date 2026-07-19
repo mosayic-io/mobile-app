@@ -1,3 +1,0 @@
-{
-  "instructions": "Go to Firebase > Project Settings > General and download the google-services.json file for your Android app. Replace this file with that one."
-}
