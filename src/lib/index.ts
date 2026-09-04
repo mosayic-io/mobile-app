@@ -1,4 +1,4 @@
-export { requireEnv } from './env'
+export { apiConfigured, backendConfigured, isPlaceholder, readEnv, requireEnv } from './env'
 export { queryClient } from './queryClient'
 export { supabase } from './supabase'
 export * from './theme'

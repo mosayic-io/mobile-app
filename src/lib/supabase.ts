@@ -3,19 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 import { AppState, Platform } from 'react-native'
 import 'react-native-url-polyfill/auto'
 
-import { requireEnv } from '@/src/lib/env'
+import { backendConfigured, readEnv } from '@/src/lib/env'
 import type { Database } from '@/src/types/database'
 
-const supabaseUrl = requireEnv(
-  process.env.EXPO_PUBLIC_SUPABASE_URL,
-  'supabaseUrl',
-  'EXPO_PUBLIC_SUPABASE_URL'
-)
-const supabaseAnonKey = requireEnv(
-  process.env.EXPO_PUBLIC_SUPABASE_PUB_KEY,
-  'supabaseAnonKey',
-  'EXPO_PUBLIC_SUPABASE_PUB_KEY'
-)
+// Read optionally: importing this module must never throw. A missing or
+// placeholder value only surfaces when the client is first used (see env.ts).
+const supabaseUrl = readEnv(process.env.EXPO_PUBLIC_SUPABASE_URL, 'supabaseUrl')
+const supabaseAnonKey = readEnv(process.env.EXPO_PUBLIC_SUPABASE_PUB_KEY, 'supabaseAnonKey')
+
+export const SUPABASE_NOT_CONFIGURED_MESSAGE =
+  "Supabase isn't configured yet — fill in EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUB_KEY in .env"
 
 type SupabaseClientType = ReturnType<typeof createClient<Database>>
 
@@ -25,6 +22,10 @@ let _appStateListenerRegistered = false
 
 function getSupabase(): SupabaseClientType {
   if (!_supabase) {
+    if (!backendConfigured || !supabaseUrl || !supabaseAnonKey) {
+      throw new Error(SUPABASE_NOT_CONFIGURED_MESSAGE)
+    }
+
     _supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
         storage: AsyncStorage,

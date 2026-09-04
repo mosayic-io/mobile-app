@@ -83,6 +83,10 @@ See the Supabase repository README for more details on the database schema and m
 npx expo start
 ```
 
+### Runs without a backend
+
+The app boots with the `.env.example` placeholders (or no `.env` at all) so a brand-new project has something to look at: the home tab and its design preview render, and the Profile tab explains that Supabase needs connecting before you can sign in. Fill in the Supabase values and everything else lights up.
+
 ## Environment Configuration
 
 ### Local Development (.env)
@@ -207,8 +211,8 @@ eas update --branch production --message "Description of update"
 
 ```
 ├── app/                    # Expo Router file-based routing
-│   ├── (auth)/             # Auth screens (onboarding, sign-in, email-auth)
-│   ├── (tabs)/             # Tab navigation (home, profile, edit-profile)
+│   ├── (auth)/             # Sign-in flow (sign-in, email-auth), opened from Profile
+│   ├── (tabs)/             # Tab navigation (home is public; profile holds sign-in; edit-profile)
 │   └── _layout.tsx         # Root layout with providers
 ├── src/
 │   ├── components/         # Reusable components

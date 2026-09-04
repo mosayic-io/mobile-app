@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useRouter } from 'expo-router'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, ScrollView, StyleSheet, View } from 'react-native'
 
 import { Button, Input, Text } from '@/src/components/ui'
@@ -60,6 +61,14 @@ function EditProfileScreen() {
   const updateProfile = useUpdateUserProfile()
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
+  const router = useRouter()
+
+  // This screen only makes sense signed in (it's hidden from the tab bar)
+  useEffect(() => {
+    if (!user) {
+      router.replace('/(tabs)/profile')
+    }
+  }, [router, user])
 
   // null means "not edited yet" — fall back to the profile value once it loads
   const [displayNameInput, setDisplayNameInput] = useState<string | null>(null)

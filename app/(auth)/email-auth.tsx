@@ -94,6 +94,9 @@ const createStyles = (colors: Colors) =>
       alignItems: 'center',
       marginTop: spacing.sm,
     },
+    formNotice: {
+      textAlign: 'center',
+    },
     dialogOverlay: {
       flex: 1,
       backgroundColor: colors.overlay,
@@ -142,6 +145,7 @@ function EmailAuthScreen() {
   const segmentWidth = Math.max(0, (trackWidth - SEGMENT_PADDING * 2) / 2)
 
   const selectTab = (tab: ActiveTab) => {
+    setFormNotice(null)
     setActiveTab(tab)
     tabPosition.set(withTiming(tab === 'signin' ? 0 : 1, { duration: 220 }))
   }
@@ -149,6 +153,12 @@ function EmailAuthScreen() {
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: tabPosition.get() * segmentWidth }],
   }))
+
+  // Alert.alert is a no-op on web, so outcomes are also shown inline
+  const [formNotice, setFormNotice] = useState<{
+    tone: 'danger' | 'success'
+    text: string
+  } | null>(null)
 
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [resetSent, setResetSent] = useState(false)
@@ -169,29 +179,38 @@ function EmailAuthScreen() {
     defaultValues: { email: '' },
   })
 
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/(tabs)/profile')
+    }
+  }
+
+  const showError = (title: string, error: unknown) => {
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+    setFormNotice({ tone: 'danger', text: message })
+    Alert.alert(title, message)
+  }
+
   const onSignIn = async (data: SignInFormData) => {
+    setFormNotice(null)
     try {
       await signIn(data.email, data.password)
     } catch (error) {
-      Alert.alert(
-        'Sign In Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      showError('Sign In Failed', error)
     }
   }
 
   const onSignUp = async (data: SignUpFormData) => {
+    setFormNotice(null)
     try {
       await signUp(data.email.trim(), data.password)
-      Alert.alert(
-        'Check your email',
-        'We sent you a confirmation link to verify your account.'
-      )
+      const message = 'We sent you a confirmation link to verify your account.'
+      setFormNotice({ tone: 'success', text: message })
+      Alert.alert('Check your email', message)
     } catch (error) {
-      Alert.alert(
-        'Sign Up Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      showError('Sign Up Failed', error)
     }
   }
 
@@ -334,7 +353,7 @@ function EmailAuthScreen() {
       >
         <Pressable
           style={styles.backRow}
-          onPress={() => router.back()}
+          onPress={goBack}
           accessibilityRole="button"
           accessibilityLabel="Back to sign in options"
         >
@@ -387,6 +406,17 @@ function EmailAuthScreen() {
         <Animated.View key={activeTab} entering={FadeIn.duration(220)}>
           {activeTab === 'signin' ? renderSignIn() : renderSignUp()}
         </Animated.View>
+
+        {formNotice && (
+          <Text
+            variant="bodySmall"
+            color={formNotice.tone}
+            style={styles.formNotice}
+            accessibilityRole="alert"
+          >
+            {formNotice.text}
+          </Text>
+        )}
       </ScrollView>
 
       <Modal

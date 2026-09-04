@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native'
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -48,6 +48,9 @@ const createStyles = (colors: Colors) =>
       marginTop: spacing.xl,
       alignItems: 'center',
     },
+    errorText: {
+      textAlign: 'center',
+    },
     socialIcon: {
       width: 18,
       height: 18,
@@ -64,28 +67,41 @@ function SignInScreen() {
   const signInWithApple = useAuthStore((state) => state.signInWithApple)
   const isLoading = useAuthStore((state) => state.isLoading)
 
+  // Alert.alert is a no-op on web, so failures are also shown inline
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const showError = (title: string, error: unknown) => {
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+    setErrorMessage(message)
+    Alert.alert(title, message)
+  }
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/(tabs)/profile')
+    }
+  }
+
   const onGoogleSignIn = async () => {
+    setErrorMessage(null)
     try {
       await signInWithGoogle()
     } catch (error) {
-      Alert.alert(
-        'Google Sign In Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      showError('Google Sign In Failed', error)
     }
   }
 
   const onAppleSignIn = async () => {
+    setErrorMessage(null)
     try {
       await signInWithApple()
     } catch (error) {
       if (error instanceof Error && error.message === 'Sign in was cancelled') {
         return
       }
-      Alert.alert(
-        'Apple Sign In Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      showError('Apple Sign In Failed', error)
     }
   }
 
@@ -154,12 +170,23 @@ function SignInScreen() {
         >
           Continue with Email
         </Button>
+
+        {errorMessage && (
+          <Text
+            variant="bodySmall"
+            color="danger"
+            style={styles.errorText}
+            accessibilityRole="alert"
+          >
+            {errorMessage}
+          </Text>
+        )}
       </Animated.View>
 
       <Animated.View entering={FadeInDown.delay(300).duration(400)}>
         <Pressable
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={goBack}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >

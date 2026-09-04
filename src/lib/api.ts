@@ -1,11 +1,19 @@
-import { requireEnv } from '@/src/lib/env'
+import { apiConfigured, readEnv } from '@/src/lib/env'
 import { supabase } from '@/src/lib/supabase'
 
-const apiBaseUrl = requireEnv(
-  process.env.EXPO_PUBLIC_API_URL,
-  'apiUrl',
-  'EXPO_PUBLIC_API_URL'
-).replace(/\/+$/, '')
+export const API_NOT_CONFIGURED_MESSAGE =
+  "The API isn't configured yet — fill in EXPO_PUBLIC_API_URL in .env"
+
+// Resolved on first request, not at import, so the app boots without a backend.
+function getApiBaseUrl(): string {
+  const url = readEnv(process.env.EXPO_PUBLIC_API_URL, 'apiUrl')
+
+  if (!apiConfigured || !url) {
+    throw new Error(API_NOT_CONFIGURED_MESSAGE)
+  }
+
+  return url.replace(/\/+$/, '')
+}
 
 async function getAccessToken(): Promise<string> {
   const { data, error } = await supabase.auth.getSession()
@@ -34,6 +42,7 @@ async function parseErrorMessage(response: Response): Promise<string> {
 }
 
 export async function deleteAuthUser(): Promise<void> {
+  const apiBaseUrl = getApiBaseUrl()
   const token = await getAccessToken()
   const response = await fetch(`${apiBaseUrl}/auth/users/me`, {
     method: 'DELETE',

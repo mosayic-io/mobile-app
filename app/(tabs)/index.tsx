@@ -47,7 +47,8 @@ function HomeScreen() {
   const styles = useMemo(() => createStyles(colors), [colors])
   const { data: profile } = useUserProfile(user?.id)
 
-  const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'there'
+  // Home is open to everyone — no user just means a neutral greeting
+  const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? null
 
   return (
     <ScrollView
@@ -56,12 +57,14 @@ function HomeScreen() {
       accessibilityLabel="Home screen"
     >
       <Animated.View entering={FadeInDown.duration(400)} style={styles.greetingRow}>
-        <Avatar source={profile?.photo_url} name={displayName} size="md" />
+        <Avatar source={profile?.photo_url} name={displayName ?? 'Guest'} size="md" />
         <View style={styles.greetingText}>
-          <Text variant="h2">Hi, {displayName}</Text>
-          <Text variant="bodySmall" color="secondary">
-            {user?.email}
-          </Text>
+          <Text variant="h2">{displayName ? `Hi, ${displayName}` : 'Welcome'}</Text>
+          {user?.email && (
+            <Text variant="bodySmall" color="secondary">
+              {user.email}
+            </Text>
+          )}
         </View>
       </Animated.View>
 

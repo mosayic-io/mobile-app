@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Session, User } from '@supabase/supabase-js'
 import { Platform } from 'react-native'
 
+import { backendConfigured } from '@/src/lib/env'
 import { supabase } from '@/src/lib/supabase'
 import { queryClient } from '@/src/lib/queryClient'
 import { useNotificationStore } from '@/src/stores/notificationStore'
@@ -38,6 +39,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   initError: null,
 
   setupAuthListener: () => {
+    // No backend yet: nothing to listen to (see src/lib/env.ts, "unconfigured mode")
+    if (!backendConfigured) {
+      return () => {}
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       set({
         session,
@@ -62,6 +68,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     // Reset init state when retrying after a failure
     if (initError) {
       set({ isInitialized: false, initError: null })
+    }
+
+    // No backend yet: boot signed out without touching Supabase. The sign-in
+    // actions below still throw the clear "not configured" error if used.
+    if (!backendConfigured) {
+      set({ session: null, user: null, isInitialized: true, initError: null })
+      return
     }
 
     try {
@@ -263,6 +276,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   signOut: async () => {
+    // Nothing to sign out of
+    if (!get().session) return
+
     set({ isLoading: true })
 
     try {

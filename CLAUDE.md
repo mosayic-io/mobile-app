@@ -29,17 +29,16 @@ These documentation files are specifically formatted for AI agents and should be
 ```
 /
 ├── app/                       # Expo Router file-based routing
-│   ├── (auth)/                # Auth screens group (unauthenticated)
-│   │   ├── onboarding.tsx     # Onboarding/welcome screen
+│   ├── (auth)/                # Sign-in flow, pushed from Profile → "Sign in"
 │   │   ├── sign-in.tsx        # Sign-in method selection (Google/Apple/email)
 │   │   ├── email-auth.tsx     # Email sign in/sign up screen
-│   │   └── _layout.tsx        # Auth stack layout
-│   ├── (tabs)/                # Tab-based navigation (authenticated)
-│   │   ├── index.tsx          # Home screen
-│   │   ├── profile.tsx        # Profile screen
-│   │   ├── edit-profile.tsx   # Edit profile screen
+│   │   └── _layout.tsx        # Auth stack layout (returns to Profile once signed in)
+│   ├── (tabs)/                # Tab-based navigation — open to everyone
+│   │   ├── index.tsx          # Home screen (public; shows the design preview)
+│   │   ├── profile.tsx        # Profile screen (signed-out state holds the "Sign in" button)
+│   │   ├── edit-profile.tsx   # Edit profile screen (signed-in only)
 │   │   └── _layout.tsx        # Tabs layout
-│   └── _layout.tsx            # Root layout with providers & auth guard (Stack.Protected)
+│   └── _layout.tsx            # Root layout with providers; no auth guard — screens check `user` themselves
 ├── src/
 │   ├── components/            # Shared React components
 │   │   ├── ui/                # UI primitives (Button, Input, Text, Avatar, Card)
@@ -50,6 +49,7 @@ These documentation files are specifically formatted for AI agents and should be
 │   │   └── profile/           # User profile (hooks)
 │   ├── hooks/                 # Global custom hooks (useColors, useIsDark)
 │   ├── lib/                   # Libraries and utilities
+│   │   ├── env.ts             # Env reading + `backendConfigured` (the app runs without a backend)
 │   │   ├── api.ts             # API client configuration
 │   │   ├── notifications.ts   # Push notification utilities
 │   │   ├── supabase.ts        # Supabase client configuration
@@ -63,6 +63,15 @@ These documentation files are specifically formatted for AI agents and should be
 ├── eas.json                   # EAS Build/Submit configuration
 └── package.json               # Dependencies and scripts
 ```
+
+## Auth Model
+
+The home tab is public; sign-in lives in the Profile tab. There is no route
+guard — a screen that needs a user checks `useAuthStore().user` itself (see
+`edit-profile.tsx`). The app also boots with no backend configured (the
+`.env.example` placeholders, or no `.env`): `backendConfigured` in
+`src/lib/env.ts` is false, the Supabase client throws a clear error only when
+first used, and Profile explains that Supabase needs connecting before sign-in.
 
 ## Supabase Backend & Migrations
 
@@ -285,7 +294,7 @@ Use these libraries for their respective purposes. Do not introduce alternative 
 | Backend | `@supabase/supabase-js` | Auth, database, configured in `lib/supabase.ts` |
 | Push Notifications | `expo-notifications` | Configured in `lib/notifications.ts` |
 | Icons | `@expo/vector-icons` | Use Ionicons or other included icon sets |
-| Vector Graphics | `react-native-svg` | Gradients and custom shapes (see onboarding) |
+| Vector Graphics | `react-native-svg` | Gradients and custom shapes |
 | Social Auth | `@react-native-google-signin/google-signin`, `expo-apple-authentication` | Google and Apple sign-in |
 
 

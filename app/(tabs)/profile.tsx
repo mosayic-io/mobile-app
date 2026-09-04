@@ -9,6 +9,7 @@ import { useColors } from '@/src/hooks/useColors'
 import { spacing, borderRadius, type Colors, type ThemeMode } from '@/src/lib/theme'
 import { useAuthStore } from '@/src/features/auth'
 import { useUserProfile } from '@/src/features/profile'
+import { backendConfigured } from '@/src/lib/env'
 import { useThemeStore } from '@/src/stores/themeStore'
 import { ScreenErrorBoundary } from '@/src/components/error'
 
@@ -40,6 +41,13 @@ const createStyles = (colors: Colors) =>
     },
     userEmail: {
       marginBottom: spacing.md,
+    },
+    signInButton: {
+      marginTop: spacing.sm,
+    },
+    signInNotice: {
+      marginTop: spacing.sm,
+      textAlign: 'center',
     },
     section: {
       marginTop: spacing.sm,
@@ -98,6 +106,15 @@ function ProfileScreen() {
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
   const { data: profile } = useUserProfile(user?.id)
+  const [signInNotice, setSignInNotice] = useState<string | null>(null)
+
+  const handleSignIn = useCallback(() => {
+    if (!backendConfigured) {
+      setSignInNotice("Connect Supabase first — this app doesn't have a backend yet.")
+      return
+    }
+    router.push('/(auth)/sign-in')
+  }, [router])
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -124,38 +141,72 @@ function ProfileScreen() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
     >
-      <View style={styles.header}>
-        <Avatar
-          name={user?.email}
-          size="xl"
-        />
-        <Text variant="h3" style={styles.userName}>
-          {displayName}
-        </Text>
-        <Text variant="bodySmall" color="secondary" style={styles.userEmail}>
-          {user?.email}
-        </Text>
-      </View>
+      {user ? (
+        <View style={styles.header}>
+          <Avatar
+            name={user.email}
+            size="xl"
+          />
+          <Text variant="h3" style={styles.userName}>
+            {displayName}
+          </Text>
+          <Text variant="bodySmall" color="secondary" style={styles.userEmail}>
+            {user.email}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.header}>
+          <Avatar name="Guest" size="xl" />
+          <Text variant="h3" style={styles.userName}>
+            You&apos;re not signed in
+          </Text>
+          <Text variant="bodySmall" color="secondary" style={styles.userEmail}>
+            Sign in to manage your account.
+          </Text>
+          <Button
+            onPress={handleSignIn}
+            variant="primary"
+            fullWidth
+            style={styles.signInButton}
+            accessibilityLabel="Sign in"
+            accessibilityHint="Double tap to open the sign-in options"
+          >
+            Sign in
+          </Button>
+          {signInNotice && (
+            <Text
+              variant="bodySmall"
+              color="secondary"
+              style={styles.signInNotice}
+              accessibilityRole="alert"
+            >
+              {signInNotice}
+            </Text>
+          )}
+        </View>
+      )}
 
       <View style={styles.section}>
-        <Pressable
-          style={styles.menuItem}
-          onPress={() => router.push('/(tabs)/edit-profile')}
-          accessibilityRole="button"
-          accessibilityLabel="Edit profile"
-          accessibilityHint="Double tap to edit your profile settings"
-        >
-          <Ionicons
-            name="create-outline"
-            size={22}
-            color={colors.text}
-            style={styles.menuItemIcon}
-          />
-          <Text variant="body" style={styles.menuItemContent}>
-            Edit Profile
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.tertiary} />
-        </Pressable>
+        {user && (
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push('/(tabs)/edit-profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
+            accessibilityHint="Double tap to edit your profile settings"
+          >
+            <Ionicons
+              name="create-outline"
+              size={22}
+              color={colors.text}
+              style={styles.menuItemIcon}
+            />
+            <Text variant="body" style={styles.menuItemContent}>
+              Edit Profile
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.tertiary} />
+          </Pressable>
+        )}
 
         <Pressable
           style={styles.menuItem}
@@ -215,18 +266,20 @@ function ProfileScreen() {
         )}
       </View>
 
-      <View style={styles.logoutSection}>
-        <Button
-          onPress={handleSignOut}
-          variant="outline"
-          loading={isLoading}
-          fullWidth
-          accessibilityLabel="Log out of your account"
-          accessibilityHint="Double tap to sign out"
-        >
-          {isLoading ? 'Logging out...' : 'Log Out'}
-        </Button>
-      </View>
+      {user && (
+        <View style={styles.logoutSection}>
+          <Button
+            onPress={handleSignOut}
+            variant="outline"
+            loading={isLoading}
+            fullWidth
+            accessibilityLabel="Log out of your account"
+            accessibilityHint="Double tap to sign out"
+          >
+            {isLoading ? 'Logging out...' : 'Log Out'}
+          </Button>
+        </View>
+      )}
 
       <View style={styles.footer}>
         <Text variant="caption" color="tertiary">
