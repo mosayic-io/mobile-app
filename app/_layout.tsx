@@ -5,7 +5,7 @@ import { useEffect, useMemo } from 'react'
 import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { SafeAreaInsetsContext, SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { queryClient } from '@/src/lib/queryClient'
 import { useAuthStore } from '@/src/features/auth'
@@ -14,6 +14,7 @@ import { ErrorBoundary } from '@/src/components/error'
 import { Button, Text } from '@/src/components/ui'
 import { useNotificationStore, useThemeHydration } from '@/src/stores'
 import { spacing } from '@/src/lib/theme'
+import { embedInsets, useEmbedThemeBridge } from '@/src/lib/embed'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -63,6 +64,7 @@ function InitializationError({
 }
 
 function RootLayoutNav() {
+  useEmbedThemeBridge()
   const session = useAuthStore((state) => state.session)
   const isInitialized = useAuthStore((state) => state.isInitialized)
   const initError = useAuthStore((state) => state.initError)
@@ -136,15 +138,25 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const app = (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <RootLayoutNav />
+        <StatusBar style="auto" />
+      </QueryClientProvider>
+    </ErrorBoundary>
+  )
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <ErrorBoundary>
-          <QueryClientProvider client={queryClient}>
-            <RootLayoutNav />
-            <StatusBar style="auto" />
-          </QueryClientProvider>
-        </ErrorBoundary>
+        {/* Inside a phone-shaped iframe the page URL carries the device's
+            insets (see src/lib/embed.ts); a real device reports its own. */}
+        {embedInsets ? (
+          <SafeAreaInsetsContext.Provider value={embedInsets}>{app}</SafeAreaInsetsContext.Provider>
+        ) : (
+          app
+        )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   )

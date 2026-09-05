@@ -50,6 +50,7 @@ These documentation files are specifically formatted for AI agents and should be
 │   ├── hooks/                 # Global custom hooks (useColors, useIsDark, useTabBarPadding — the tab bar floats, screens pad under it)
 │   ├── lib/                   # Libraries and utilities
 │   │   ├── env.ts             # Env reading + `backendConfigured` (the app runs without a backend)
+│   │   ├── embed.ts           # Web build inside a phone-shaped iframe: `?insets=top,bottom` → safe-area insets; posts the colour scheme to the parent
 │   │   ├── api.ts             # API client configuration
 │   │   ├── notifications.ts   # Push notification utilities
 │   │   ├── supabase.ts        # Supabase client configuration
