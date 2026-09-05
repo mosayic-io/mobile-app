@@ -51,7 +51,7 @@ These documentation files are specifically formatted for AI agents and should be
 │   ├── lib/                   # Libraries and utilities
 │   │   ├── env.ts             # Env reading + `backendConfigured` (the app runs without a backend)
 │   │   ├── embed.ts           # Web build inside a phone-shaped iframe: `?insets=top,bottom` → safe-area insets; posts the colour scheme to the parent
-│   │   ├── api.ts             # API client configuration
+│   │   ├── api.ts             # deleteAuthUser (delete_own_account RPC) + apiFetch for the Python API
 │   │   ├── notifications.ts   # Push notification utilities
 │   │   ├── supabase.ts        # Supabase client configuration
 │   │   ├── queryClient.ts     # TanStack Query configuration

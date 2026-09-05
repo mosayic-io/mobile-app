@@ -1,6 +1,23 @@
 import { apiConfigured, readEnv } from '@/src/lib/env'
 import { supabase } from '@/src/lib/supabase'
 
+// ── Account deletion ────────────────────────────────────────────────────────
+// A Postgres function in the -api repo's migrations, not an API call: Apple
+// and Google require in-app account deletion, and this way it works the moment
+// the database exists — before any server is deployed. The function deletes
+// only the calling user (auth.uid() from the session token) and can't be
+// pointed at anyone else.
+
+/** Delete the signed-in user's account. */
+export async function deleteAuthUser(): Promise<void> {
+  const { error } = await supabase.rpc('delete_own_account')
+  if (error) throw new Error(error.message)
+}
+
+// ── Python API ──────────────────────────────────────────────────────────────
+// For everything beyond the database — AI features, email, background work.
+// Only needed once EXPO_PUBLIC_API_URL points at a running API.
+
 export const API_NOT_CONFIGURED_MESSAGE =
   "The API isn't configured yet — fill in EXPO_PUBLIC_API_URL in .env"
 
@@ -41,18 +58,26 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 }
 
-export async function deleteAuthUser(): Promise<void> {
+/**
+ * Call a Python API endpoint as the signed-in user, e.g.
+ * `apiFetch('/protected')` or `apiFetch('/things', { method: 'POST', body: JSON.stringify(thing) })`.
+ * Resolves to the parsed JSON body; throws with the API's error message on a non-2xx.
+ */
+export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const apiBaseUrl = getApiBaseUrl()
   const token = await getAccessToken()
-  const response = await fetch(`${apiBaseUrl}/auth/users/me`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  const headers = new Headers(init.headers)
+  headers.set('Authorization', `Bearer ${token}`)
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers })
 
   if (!response.ok) {
-    const message = await parseErrorMessage(response)
-    throw new Error(message)
+    throw new Error(await parseErrorMessage(response))
   }
+
+  const text = await response.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }

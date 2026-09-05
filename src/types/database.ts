@@ -73,6 +73,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_own_account: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       handle_new_user: {
         Args: Record<PropertyKey, never>
         Returns: undefined

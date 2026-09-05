@@ -309,8 +309,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       await deleteAuthUser()
 
+      // The user no longer exists server-side, so only the local session
+      // needs clearing — a global sign-out would be refused with 403.
       try {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
       } catch (signOutError) {
         console.warn('Failed to sign out after account deletion:', signOutError)
       }
