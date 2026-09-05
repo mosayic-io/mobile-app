@@ -47,7 +47,7 @@ These documentation files are specifically formatted for AI agents and should be
 │   ├── features/              # Feature-based modules
 │   │   ├── auth/              # Authentication (stores, hooks)
 │   │   └── profile/           # User profile (hooks)
-│   ├── hooks/                 # Global custom hooks (useColors, useIsDark)
+│   ├── hooks/                 # Global custom hooks (useColors, useIsDark, useTabBarPadding — the tab bar floats, screens pad under it)
 │   ├── lib/                   # Libraries and utilities
 │   │   ├── env.ts             # Env reading + `backendConfigured` (the app runs without a backend)
 │   │   ├── api.ts             # API client configuration
@@ -295,6 +295,7 @@ Use these libraries for their respective purposes. Do not introduce alternative 
 | Push Notifications | `expo-notifications` | Configured in `lib/notifications.ts` |
 | Icons | `@expo/vector-icons` | Use Ionicons or other included icon sets |
 | Vector Graphics | `react-native-svg` | Gradients and custom shapes |
+| Glass surfaces | `expo-blur` | The blur under `Card` and the floating tab bar (the "liquid glass" look — fill/edge colours are the `glassFill` / `glassEdge` theme tokens) |
 | Social Auth | `@react-native-google-signin/google-signin`, `expo-apple-authentication` | Google and Apple sign-in |
 
 

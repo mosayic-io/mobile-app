@@ -14,6 +14,10 @@ export const lightColors = {
   success: '#34c759',
   onDanger: '#fff',
   overlay: 'rgba(0, 0, 0, 0.4)',
+  // Glass surfaces (Card, tab bar): a translucent fill over a blur, with a
+  // lighter hairline edge — the "liquid glass" look. Alpha is the point.
+  glassFill: 'rgba(255, 255, 255, 0.62)',
+  glassEdge: 'rgba(255, 255, 255, 0.9)',
 } as const
 
 export const darkColors = {
@@ -30,6 +34,8 @@ export const darkColors = {
   success: '#30d158',
   onDanger: '#fff',
   overlay: 'rgba(0, 0, 0, 0.6)',
+  glassFill: 'rgba(28, 28, 30, 0.55)',
+  glassEdge: 'rgba(255, 255, 255, 0.14)',
 } as const
 
 export type Colors = {
@@ -46,6 +52,8 @@ export type Colors = {
   success: string
   onDanger: string
   overlay: string
+  glassFill: string
+  glassEdge: string
 }
 
 export const spacing = {

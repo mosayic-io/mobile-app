@@ -7,6 +7,7 @@ import { ScreenErrorBoundary } from '@/src/components/error'
 import { useAuthStore } from '@/src/features/auth'
 import { useUserProfile, useUpdateUserProfile } from '@/src/features/profile'
 import { useColors } from '@/src/hooks/useColors'
+import { useTabBarPadding } from '@/src/hooks/useTabBarPadding'
 import { borderRadius, spacing, type Colors } from '@/src/lib/theme'
 
 const createStyles = (colors: Colors) =>
@@ -61,6 +62,7 @@ function EditProfileScreen() {
   const updateProfile = useUpdateUserProfile()
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
+  const tabBarPadding = useTabBarPadding()
   const router = useRouter()
 
   // This screen only makes sense signed in (it's hidden from the tab bar)
@@ -169,7 +171,7 @@ function EditProfileScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarPadding }]}
     >
       <View style={styles.section}>
         <View style={styles.sectionHeader}>

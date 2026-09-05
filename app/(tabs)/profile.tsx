@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router'
 
 import { Avatar, Button, Text } from '@/src/components/ui'
 import { useColors } from '@/src/hooks/useColors'
+import { useTabBarPadding } from '@/src/hooks/useTabBarPadding'
 import { spacing, borderRadius, type Colors, type ThemeMode } from '@/src/lib/theme'
 import { useAuthStore } from '@/src/features/auth'
 import { useUserProfile } from '@/src/features/profile'
@@ -105,6 +106,7 @@ function ProfileScreen() {
   const [showThemePicker, setShowThemePicker] = useState(false)
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
+  const tabBarPadding = useTabBarPadding()
   const { data: profile } = useUserProfile(user?.id)
   const [signInNotice, setSignInNotice] = useState<string | null>(null)
 
@@ -139,7 +141,7 @@ function ProfileScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarPadding }]}
     >
       {user ? (
         <View style={styles.header}>
