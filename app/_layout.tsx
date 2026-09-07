@@ -1,8 +1,15 @@
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
-import { useEffect, useMemo } from 'react'
-import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native'
+import { useEffect, useMemo, type PropsWithChildren } from 'react'
+import {
+  AppState,
+  type AppStateStatus,
+  Platform,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaInsetsContext, SafeAreaProvider } from 'react-native-safe-area-context'
@@ -14,7 +21,7 @@ import { ErrorBoundary } from '@/src/components/error'
 import { Button, Text } from '@/src/components/ui'
 import { useNotificationStore, useThemeHydration } from '@/src/stores'
 import { spacing } from '@/src/lib/theme'
-import { embedInsets, useEmbedThemeBridge } from '@/src/lib/embed'
+import { embedInsets, isEmbedded, useEmbedThemeBridge } from '@/src/lib/embed'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -22,6 +29,36 @@ SplashScreen.preventAutoHideAsync()
 // (auth) screens are pushed on top of it (as a sheet on native).
 export const unstable_settings = {
   initialRouteName: '(tabs)',
+}
+
+// In a desktop browser the app keeps a phone's proportions: one column, as
+// wide as a large phone, centred, with a hairline down each side once the
+// window is wider than that. On a phone-sized window (or inside the
+// dashboard's phone frame) it fills the viewport like any app would.
+const PHONE_COLUMN_WIDTH = 430
+
+function PhoneColumn({ children }: PropsWithChildren) {
+  const colors = useColors()
+  const { width } = useWindowDimensions()
+
+  if (Platform.OS !== 'web' || isEmbedded) {
+    return <>{children}</>
+  }
+
+  const framed = width > PHONE_COLUMN_WIDTH
+  return (
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.column,
+          framed && { borderLeftColor: colors.border, borderRightColor: colors.border },
+          framed && styles.columnFramed,
+        ]}
+      >
+        {children}
+      </View>
+    </View>
+  )
 }
 
 function InitializationError({
@@ -141,7 +178,9 @@ export default function RootLayout() {
   const app = (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <RootLayoutNav />
+        <PhoneColumn>
+          <RootLayoutNav />
+        </PhoneColumn>
         <StatusBar style="auto" />
       </QueryClientProvider>
     </ErrorBoundary>
@@ -165,5 +204,15 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  column: {
+    flex: 1,
+    width: '100%',
+    maxWidth: PHONE_COLUMN_WIDTH,
+    alignSelf: 'center',
+  },
+  columnFramed: {
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
   },
 })

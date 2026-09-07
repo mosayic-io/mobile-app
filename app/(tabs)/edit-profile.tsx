@@ -2,13 +2,13 @@ import { useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, ScrollView, StyleSheet, View } from 'react-native'
 
-import { Button, Input, Text } from '@/src/components/ui'
+import { Button, Card, Input, Text } from '@/src/components/ui'
 import { ScreenErrorBoundary } from '@/src/components/error'
 import { useAuthStore } from '@/src/features/auth'
 import { useUserProfile, useUpdateUserProfile } from '@/src/features/profile'
 import { useColors } from '@/src/hooks/useColors'
 import { useTabBarPadding } from '@/src/hooks/useTabBarPadding'
-import { borderRadius, spacing, type Colors } from '@/src/lib/theme'
+import { spacing, type Colors } from '@/src/lib/theme'
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
@@ -22,17 +22,7 @@ const createStyles = (colors: Colors) =>
       gap: spacing.xl,
     },
     section: {
-      padding: spacing.lg,
-      borderRadius: borderRadius.lg,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
       gap: spacing.md,
-      shadowColor: colors.text,
-      shadowOpacity: 0.06,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 1,
     },
     sectionTitle: {
       marginBottom: spacing.xs,
@@ -173,7 +163,7 @@ function EditProfileScreen() {
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: tabBarPadding }]}
     >
-      <View style={styles.section}>
+      <Card style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text variant="h3" style={styles.sectionTitle}>
             Profile
@@ -196,9 +186,9 @@ function EditProfileScreen() {
           autoCapitalize="words"
           returnKeyType="done"
         />
-      </View>
+      </Card>
 
-      <View style={styles.section}>
+      <Card style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text variant="h3" style={styles.sectionTitle}>
             Password
@@ -239,9 +229,9 @@ function EditProfileScreen() {
             Send reset email
           </Button>
         </View>
-      </View>
+      </Card>
 
-      <View style={[styles.section, styles.dangerSection]}>
+      <Card style={[styles.section, styles.dangerSection]}>
         <Text variant="h3" style={[styles.sectionTitle, styles.dangerTitle]}>
           Danger Zone
         </Text>
@@ -254,7 +244,7 @@ function EditProfileScreen() {
         >
           {isLoading ? 'Deleting...' : 'Delete Account'}
         </Button>
-      </View>
+      </Card>
     </ScrollView>
   )
 }

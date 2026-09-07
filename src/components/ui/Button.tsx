@@ -55,7 +55,7 @@ const createStyles = (colors: Colors) => {
   } as const
 
   const textVariantStyles = {
-    primary: { color: colors.background },
+    primary: { color: colors.onPrimary },
     secondary: { color: colors.text },
     outline: { color: colors.text },
     ghost: { color: colors.text },
@@ -68,7 +68,7 @@ const createStyles = (colors: Colors) => {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: borderRadius.md,
+        borderRadius: borderRadius.control,
       },
       fullWidth: { width: '100%' },
       disabled: { opacity: 0.6 },
@@ -101,7 +101,7 @@ export function Button({
     variant === 'danger'
       ? colors.onDanger
       : variant === 'primary'
-        ? colors.background
+        ? colors.onPrimary
         : colors.text
 
   const scale = useSharedValue(1)

@@ -216,13 +216,13 @@ eas update --branch production --message "Description of update"
 │   └── _layout.tsx         # Root layout with providers
 ├── src/
 │   ├── components/         # Reusable components
-│   │   ├── ui/             # UI primitives (Button, Input, Text, Avatar)
+│   │   ├── ui/             # UI primitives (Button, Input, Text, Avatar, Card, ListGroup/ListRow, Segmented, NavBar)
 │   │   ├── forms/          # Form components with react-hook-form
 │   │   └── error/          # Error boundaries
 │   ├── features/           # Feature modules
 │   │   ├── auth/           # Authentication (stores)
 │   │   └── profile/        # User profile (hooks)
-│   ├── hooks/              # Global hooks (useColors, useIsDark)
+│   ├── hooks/              # Global hooks (useColors, useIsDark, useShadows, useTabBarPadding)
 │   ├── lib/                # Utilities (api, supabase, theme, queryClient, notifications)
 │   ├── stores/             # Global Zustand stores (theme, notifications)
 │   └── types/              # TypeScript types

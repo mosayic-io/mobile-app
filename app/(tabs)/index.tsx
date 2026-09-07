@@ -1,31 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  type LayoutChangeEvent,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
+import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg'
 import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
   interpolate,
   type SharedValue,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withRepeat,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated'
 
-import { Avatar, Button, Card, Text } from '@/src/components/ui'
+import { Avatar, Card, ListGroup, ListRow, NavBar, Segmented, Text } from '@/src/components/ui'
 import { useColors, useIsDark } from '@/src/hooks/useColors'
 import { useTabBarPadding } from '@/src/hooks/useTabBarPadding'
 import {
@@ -38,32 +33,33 @@ import {
 import { useThemeStore } from '@/src/stores/themeStore'
 import { useAuthStore } from '@/src/features/auth'
 import { useUserProfile } from '@/src/features/profile'
-import { backendConfigured } from '@/src/lib/env'
 import { ScreenErrorBoundary } from '@/src/components/error'
 
 // The home screen is where the design system begins. It is laid out like a
-// real first screen — a greeting over a wash of the accent colour, then glass
-// cards that blur that colour behind them — and built only from the theme
-// tokens (src/lib/theme.ts) and the UI primitives (src/components/ui), so a
-// change to either shows up here first.
+// real first screen — a greeting, a picture, two tiles, then grouped lists —
+// and built only from the theme tokens (src/lib/theme.ts) and the UI
+// primitives (src/components/ui), so a change to either shows up here first.
 //
 // It also shows the theme to itself: the pill by the avatar switches
-// light / dark / system, and the "Design system" card lays out the palette,
-// the type scale and the shapes the rest of the app is drawn from. Every
-// control on this screen does something real — nothing here is a mock-up.
+// light / dark / system, and the "Design system" section lays out the
+// palette, the type scale and the shapes the rest of the app is drawn from.
+// Every control on this screen does something real — nothing is a mock-up.
 // Restyle it, or replace it with the app's real screens.
 //
-// Two slow loops, both a few pixels over several seconds, both off under
-// reduced motion: the glow drifts behind the greeting, and a thin accent
-// ring turns round the avatar.
+// Three slow loops, each a few pixels over many seconds, all off under
+// reduced motion: the accent glow breathes behind the greeting, the picture
+// drifts the way a photo does on a lock screen, and the dot on the theme
+// pill pulses.
+
+const HERO = require('../../assets/images/home-hero.jpg')
 
 const FACETS = [
-  { key: 'colour', label: 'Colour' },
-  { key: 'type', label: 'Type' },
-  { key: 'shape', label: 'Shape' },
+  { value: 'colour', label: 'Colour' },
+  { value: 'type', label: 'Type' },
+  { value: 'shape', label: 'Shape' },
 ] as const
 
-type Facet = (typeof FACETS)[number]['key']
+type Facet = (typeof FACETS)[number]['value']
 
 // The pill by the avatar walks through the three theme modes in turn.
 const NEXT_MODE: Record<ThemeMode, ThemeMode> = {
@@ -72,33 +68,17 @@ const NEXT_MODE: Record<ThemeMode, ThemeMode> = {
   dark: 'system',
 }
 
-const MODE_META: Record<ThemeMode, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  system: { label: 'System', icon: 'phone-portrait-outline' },
-  light: { label: 'Light', icon: 'sunny-outline' },
-  dark: { label: 'Dark', icon: 'moon-outline' },
+const MODE_LABEL: Record<ThemeMode, string> = {
+  system: 'System',
+  light: 'Light',
+  dark: 'Dark',
 }
 
-const TYPE_SPECIMENS = [
-  { variant: 'h1', sample: 'Display', size: fontSize['3xl'] },
-  { variant: 'h3', sample: 'Subhead', size: fontSize.xl },
-  { variant: 'body', sample: 'Body text', size: fontSize.base },
-  { variant: 'caption', sample: 'Caption', size: fontSize.xs },
-] as const
-
-const RADII = [
-  { name: 'sm', value: borderRadius.sm },
-  { name: 'md', value: borderRadius.md },
-  { name: 'lg', value: borderRadius.lg },
-  { name: 'full', value: borderRadius.full },
-] as const
-
-const SPACES = [
-  { name: 'xs', value: spacing.xs },
-  { name: 'sm', value: spacing.sm },
-  { name: 'md', value: spacing.md },
-  { name: 'lg', value: spacing.lg },
-  { name: 'xl', value: spacing.xl },
-] as const
+// The page gutter: the iOS content margin.
+const GUTTER = spacing.md + spacing.xs
+const HERO_HEIGHT = 190
+const GLOW_SIZE = 420
+const SWATCH = 26
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
@@ -108,442 +88,331 @@ const createStyles = (colors: Colors) =>
     },
     scroll: {
       flex: 1,
-      backgroundColor: 'transparent',
     },
-    // The glows sit behind the whole screen so the glass cards have colour
-    // to blur, not just the greeting.
-    backdrop: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      overflow: 'hidden',
-    },
-    // borderRadius alone doesn't clip a child — without overflow the
-    // gradient shows as a hard-edged rectangle instead of a soft orb.
+    // The glow sits behind the whole screen, top right, and never takes a tap.
     glow: {
       position: 'absolute',
-      width: 340,
-      height: 340,
-      borderRadius: 170,
-      overflow: 'hidden',
+      width: GLOW_SIZE,
+      height: GLOW_SIZE,
+      top: -GLOW_SIZE * 0.55,
+      right: -GLOW_SIZE * 0.3,
     },
-    glowOne: {
-      top: -150,
-      right: -110,
+    content: {
+      paddingHorizontal: GUTTER,
+      gap: spacing.lg,
     },
-    glowTwo: {
-      top: 60,
-      left: -220,
-      width: 380,
-      height: 380,
-      borderRadius: 190,
-    },
-    glowThree: {
-      top: 420,
-      right: -180,
-      width: 300,
-      height: 300,
-      borderRadius: 150,
-    },
-    // Greeting band
-    band: {
-      paddingHorizontal: spacing.lg,
-      paddingBottom: spacing.lg,
-      gap: spacing.md,
-    },
-    bandTop: {
+    // Top row
+    topRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    avatarWrap: {
-      padding: 3,
-    },
-    avatarRing: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderRadius: borderRadius.full,
-      borderWidth: 2,
-      borderColor: 'transparent',
-      borderTopColor: colors.accent,
-      borderRightColor: `${colors.accent}55`,
-    },
-    greeting: {
-      gap: spacing.xs,
-    },
-    eyebrow: {
-      letterSpacing: 1.2,
-    },
-    // Theme pill
-    chip: {
+    pill: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs + 2,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.md,
+      height: 36,
+      paddingHorizontal: spacing.md - 2,
       borderRadius: borderRadius.full,
-      borderWidth: 1,
-      borderColor: colors.glassEdge,
-      backgroundColor: colors.glassFill,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.edge,
+      backgroundColor: colors.glassTab,
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
+      shadowRadius: 3,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 1,
     },
-    chipPressed: {
-      opacity: 0.7,
-    },
-    // Cards
-    sections: {
-      paddingHorizontal: spacing.lg,
-      gap: spacing.md,
-    },
-    cardText: {
-      gap: spacing.xs,
-    },
-    eyebrowRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    dot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
+    pillDot: {
+      width: 7,
+      height: 7,
+      borderRadius: borderRadius.full,
       backgroundColor: colors.accent,
     },
-    rule: {
-      height: 2,
-      borderRadius: 1,
-      marginTop: spacing.xs,
-      marginBottom: spacing.xs,
+    // Greeting
+    greeting: {
+      gap: spacing.xs + 2,
     },
-    actions: {
+    eyebrow: {
+      letterSpacing: 1.3,
+      textTransform: 'uppercase',
+    },
+    // Picture
+    hero: {
+      height: HERO_HEIGHT,
+      marginHorizontal: -GUTTER,
+      overflow: 'hidden',
+      backgroundColor: colors.accentSoft,
+    },
+    heroImage: {
+      width: '100%',
+      height: '100%',
+    },
+    // Tiles
+    tiles: {
       flexDirection: 'row',
-      gap: spacing.sm,
+      gap: spacing.sm + 4,
     },
-    // Design system card
-    segments: {
-      flexDirection: 'row',
-      padding: 3,
-      borderRadius: borderRadius.full,
-      backgroundColor: colors.surface,
-    },
-    segmentPill: {
-      position: 'absolute',
-      top: 3,
-      bottom: 3,
-      left: 3,
-      borderRadius: borderRadius.full,
-      backgroundColor: `${colors.accent}24`,
-      borderWidth: 1,
-      borderColor: `${colors.accent}59`,
-    },
-    segment: {
+    tile: {
       flex: 1,
-      alignItems: 'center',
-      paddingVertical: spacing.sm,
     },
-    panel: {
-      minHeight: 184,
-      justifyContent: 'center',
+    tileText: {
+      gap: 1,
     },
-    swatches: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.md,
+    // Sections
+    section: {
+      gap: spacing.sm + 2,
+      marginTop: spacing.sm,
     },
-    swatchItem: {
-      width: 76,
-      gap: spacing.xs,
+    sectionHeader: {
+      paddingHorizontal: spacing.md + 2,
+      textTransform: 'uppercase',
     },
+    // Colour panel
     swatch: {
-      height: 56,
-      borderRadius: borderRadius.md,
+      width: SWATCH,
+      height: SWATCH,
+      borderRadius: borderRadius.full,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.edge,
+    },
+    swatchSurface: {
       borderWidth: 1,
-      borderColor: colors.glassEdge,
+      borderColor: colors.border,
+    },
+    // Type panel
+    typeSurface: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.edge,
+      overflow: 'hidden',
     },
     specimen: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
+      alignItems: 'baseline',
       justifyContent: 'space-between',
       gap: spacing.md,
-      paddingVertical: spacing.xs,
+      padding: spacing.md,
     },
-    shapeGroup: {
-      gap: spacing.sm,
+    specimenDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+    },
+    // Shape panel
+    shapes: {
+      gap: spacing.sm + 4,
     },
     shapeRow: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: spacing.md,
+      gap: spacing.sm + 4,
     },
-    radius: {
-      width: 48,
-      height: 48,
-      backgroundColor: `${colors.accent}1f`,
+    shapeItem: {
+      flex: 1,
+      gap: spacing.xs + 3,
+    },
+    shapeBox: {
+      height: 64,
+      backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: `${colors.accent}55`,
+      borderColor: colors.border,
     },
-    spaceItem: {
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    spaceBar: {
-      height: 28,
-      borderRadius: 2,
-      backgroundColor: colors.accent,
-    },
-    // Link rows
-    rows: {
-      marginHorizontal: -spacing.xs,
-    },
-    row: {
+    elevationRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
-      paddingVertical: spacing.sm + 2,
-      paddingHorizontal: spacing.xs,
-    },
-    rowPressed: {
-      opacity: 0.6,
-    },
-    rowIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: borderRadius.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: `${colors.accent}1f`,
-    },
-    rowText: {
-      flex: 1,
-      gap: 2,
-    },
-    divider: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
-      marginLeft: 38 + spacing.md + spacing.xs,
-    },
-    footer: {
-      alignItems: 'center',
-      paddingTop: spacing.sm,
+      justifyContent: 'space-between',
     },
   })
 
+// A soft radial wash of the accent, breathing: it swells a little and drifts
+// a few pixels over nine seconds, then back.
 function Glow({
   clock,
   colors,
   style,
-  drift,
 }: {
   clock: SharedValue<number>
   colors: Colors
   style: StyleProp<ViewStyle>
-  drift: { x: number; y: number }
 }) {
   const animated = useAnimatedStyle(() => ({
     transform: [
-      { translateX: interpolate(clock.value, [0, 1], [0, drift.x]) },
-      { translateY: interpolate(clock.value, [0, 1], [0, drift.y]) },
-      { scale: interpolate(clock.value, [0, 1], [1, 1.06]) },
+      { translateX: interpolate(clock.get(), [0, 1], [0, -18]) },
+      { translateY: interpolate(clock.get(), [0, 1], [0, 14]) },
+      { scale: interpolate(clock.get(), [0, 1], [1, 1.12]) },
     ],
   }))
 
   return (
     <Animated.View style={[style, animated]} pointerEvents="none">
-      <LinearGradient
-        colors={[`${colors.accent}4d`, `${colors.accent}14`, `${colors.accent}00`]}
-        start={{ x: 0.5, y: 0.25 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      <Svg width={GLOW_SIZE} height={GLOW_SIZE} viewBox="0 0 100 100">
+        <Defs>
+          <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0%" stopColor={colors.accent} stopOpacity={0.14} />
+            <Stop offset="70%" stopColor={colors.accent} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx="50" cy="50" r="50" fill="url(#glow)" />
+      </Svg>
     </Animated.View>
   )
 }
 
-// Colour / Type / Shape, with the selected pill sliding between them. The
-// track is measured rather than assumed, so it survives any font or padding
-// the design system brings with it.
-function Segments({
-  value,
-  onChange,
-  animate,
-  styles,
-}: {
-  value: Facet
-  onChange: (facet: Facet) => void
-  animate: boolean
-  styles: ReturnType<typeof createStyles>
-}) {
-  const [trackWidth, setTrackWidth] = useState(0)
-  const segmentWidth = trackWidth > 0 ? (trackWidth - 6) / FACETS.length : 0
-  const index = FACETS.findIndex((facet) => facet.key === value)
-  const offset = useSharedValue(0)
-
-  useEffect(() => {
-    const target = index * segmentWidth
-    offset.value = animate
-      ? withTiming(target, { duration: 240, easing: Easing.out(Easing.cubic) })
-      : target
-  }, [animate, index, offset, segmentWidth])
-
-  const pillStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: offset.value }],
+// The picture, drifting: a slow push in and a few pixels of travel over
+// sixteen seconds, then back out — the lock-screen photo effect.
+function Hero({ clock, styles }: { clock: SharedValue<number>; styles: ReturnType<typeof createStyles> }) {
+  const animated = useAnimatedStyle(() => ({
+    transform: [
+      { scale: interpolate(clock.get(), [0, 1], [1, 1.08]) },
+      { translateX: interpolate(clock.get(), [0, 1], [0, -8]) },
+    ],
   }))
 
   return (
-    <View
-      style={styles.segments}
-      onLayout={(event: LayoutChangeEvent) => setTrackWidth(event.nativeEvent.layout.width)}
-      accessibilityRole="tablist"
-    >
-      {segmentWidth > 0 && (
-        <Animated.View style={[styles.segmentPill, { width: segmentWidth }, pillStyle]} />
-      )}
-      {FACETS.map((facet) => (
-        <Pressable
-          key={facet.key}
-          style={styles.segment}
-          onPress={() => onChange(facet.key)}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: facet.key === value }}
-          accessibilityLabel={`${facet.label} tokens`}
-        >
-          <Text
-            variant="label"
-            color={facet.key === value ? 'accent' : 'secondary'}
-            weight={facet.key === value ? 'semibold' : 'medium'}
-          >
-            {facet.label}
-          </Text>
-        </Pressable>
-      ))}
+    <View style={styles.hero} accessibilityRole="image" accessibilityLabel="Cover picture">
+      <Animated.View style={[styles.heroImage, animated]}>
+        <Image source={HERO} style={styles.heroImage} contentFit="cover" transition={300} />
+      </Animated.View>
     </View>
   )
 }
 
-function ColourPanel({
-  colors,
+// The theme pill: a glass chip with a pulsing accent dot. A working
+// control, not a badge — it switches the whole app's theme.
+function ThemePill({
+  mode,
+  onPress,
+  animate,
   styles,
 }: {
-  colors: Colors
+  mode: ThemeMode
+  onPress: () => void
+  animate: boolean
   styles: ReturnType<typeof createStyles>
 }) {
-  const swatches = [
-    { name: 'Accent', value: colors.accent },
-    { name: 'Success', value: colors.success },
-    { name: 'Warning', value: colors.warning },
-    { name: 'Danger', value: colors.danger },
-    { name: 'Text', value: colors.text },
-    { name: 'Surface', value: colors.surface },
+  const scale = useSharedValue(1)
+  const pulse = useSharedValue(0)
+
+  useEffect(() => {
+    pulse.set(
+      animate
+        ? withRepeat(withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.sin) }), -1, true)
+        : 0
+    )
+  }, [animate, pulse])
+
+  const pressed = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.get() }],
+  }))
+  const dot = useAnimatedStyle(() => ({
+    opacity: interpolate(pulse.get(), [0, 1], [1, 0.45]),
+    transform: [{ scale: interpolate(pulse.get(), [0, 1], [1, 0.8]) }],
+  }))
+
+  return (
+    <Animated.View style={pressed}>
+      <Pressable
+        style={styles.pill}
+        onPress={onPress}
+        onPressIn={() => scale.set(withSpring(0.94, { damping: 14, stiffness: 260, mass: 0.6 }))}
+        onPressOut={() => scale.set(withSpring(1, { damping: 14, stiffness: 260, mass: 0.6 }))}
+        accessibilityRole="button"
+        accessibilityLabel={`Appearance: ${MODE_LABEL[mode]}`}
+        accessibilityHint={`Double tap to switch to ${MODE_LABEL[NEXT_MODE[mode]].toLowerCase()}`}
+      >
+        <Animated.View style={[styles.pillDot, dot]} />
+        <Text variant="label" weight="semibold">
+          {MODE_LABEL[mode]}
+        </Text>
+      </Pressable>
+    </Animated.View>
+  )
+}
+
+function ColourPanel({ colors, styles }: { colors: Colors; styles: ReturnType<typeof createStyles> }) {
+  const tokens = [
+    { name: 'accent', value: colors.accent },
+    { name: 'success', value: colors.success },
+    { name: 'warning', value: colors.warning },
+    { name: 'danger', value: colors.danger },
+    { name: 'text', value: colors.text },
+    { name: 'surface', value: colors.surface },
   ]
 
   return (
-    <View style={styles.swatches}>
-      {swatches.map((swatch) => (
-        <View key={swatch.name} style={styles.swatchItem}>
-          <View style={[styles.swatch, { backgroundColor: swatch.value }]} />
-          <Text variant="label">{swatch.name}</Text>
-          <Text variant="caption" color="tertiary">
-            {swatch.value}
-          </Text>
-        </View>
+    <ListGroup>
+      {tokens.map((token) => (
+        <ListRow
+          key={token.name}
+          title={token.name}
+          leading={
+            <View
+              style={[
+                styles.swatch,
+                { backgroundColor: token.value },
+                token.name === 'surface' && styles.swatchSurface,
+              ]}
+            />
+          }
+          detail={<Text variant="mono">{token.value.toUpperCase()}</Text>}
+        />
       ))}
-    </View>
+    </ListGroup>
   )
 }
+
+const TYPE_SPECIMENS = [
+  { variant: 'h1', name: '3xl', size: fontSize['3xl'], weight: 'bold' },
+  { variant: 'h3', name: 'xl', size: fontSize.xl, weight: 'semibold' },
+  { variant: 'body', name: 'base', size: fontSize.base, weight: 'normal' },
+  { variant: 'caption', name: 'xs', size: fontSize.xs, weight: 'normal' },
+] as const
 
 function TypePanel({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
-    <View>
-      {TYPE_SPECIMENS.map((specimen) => (
-        <View key={specimen.variant} style={styles.specimen}>
-          <Text variant={specimen.variant} numberOfLines={1}>
-            {specimen.sample}
-          </Text>
-          <Text variant="caption" color="tertiary">
-            {specimen.variant} · {specimen.size}
-          </Text>
+    <View style={styles.typeSurface}>
+      {TYPE_SPECIMENS.map((specimen, index) => (
+        <View key={specimen.name}>
+          {index > 0 && <View style={styles.specimenDivider} />}
+          <View style={styles.specimen}>
+            <Text variant={specimen.variant} numberOfLines={1}>
+              {specimen.name}
+            </Text>
+            <Text variant="mono">
+              {specimen.size} / {specimen.weight}
+            </Text>
+          </View>
         </View>
       ))}
     </View>
   )
 }
 
+const SHAPES = [
+  { name: 'card', value: borderRadius.card },
+  { name: 'control', value: borderRadius.control },
+  { name: 'full', value: borderRadius.full },
+] as const
+
 function ShapePanel({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
-    <View style={{ gap: spacing.lg }}>
-      <View style={styles.shapeGroup}>
-        <Text variant="caption" color="secondary" weight="semibold">
-          Radius
-        </Text>
-        <View style={styles.shapeRow}>
-          {RADII.map((radius) => (
-            <View key={radius.name} style={styles.spaceItem}>
-              <View style={[styles.radius, { borderRadius: radius.value }]} />
-              <Text variant="caption" color="tertiary">
-                {radius.name}
-              </Text>
-            </View>
-          ))}
-        </View>
+    <View style={styles.shapes}>
+      <View style={styles.shapeRow}>
+        {SHAPES.map((shape) => (
+          <View key={shape.name} style={styles.shapeItem}>
+            <View style={[styles.shapeBox, { borderRadius: shape.value }]} />
+            <Text variant="label">{shape.name}</Text>
+            <Text variant="mono">{shape.value}px</Text>
+          </View>
+        ))}
       </View>
-
-      <View style={styles.shapeGroup}>
-        <Text variant="caption" color="secondary" weight="semibold">
-          Space
-        </Text>
-        <View style={styles.shapeRow}>
-          {SPACES.map((space) => (
-            <View key={space.name} style={styles.spaceItem}>
-              <View style={[styles.spaceBar, { width: space.value }]} />
-              <Text variant="caption" color="tertiary">
-                {space.name}
-              </Text>
-            </View>
-          ))}
+      <Card>
+        <View style={styles.elevationRow}>
+          <Text variant="label">Elevation</Text>
+          <Text variant="mono">soft / 30</Text>
         </View>
-      </View>
+      </Card>
     </View>
-  )
-}
-
-function RowLink({
-  icon,
-  title,
-  subtitle,
-  onPress,
-  styles,
-  colors,
-}: {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  subtitle: string
-  onPress: () => void
-  styles: ReturnType<typeof createStyles>
-  colors: Colors
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      accessibilityHint={subtitle}
-    >
-      <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={19} color={colors.accent} />
-      </View>
-      <View style={styles.rowText}>
-        <Text variant="label">{title}</Text>
-        <Text variant="caption" color="secondary">
-          {subtitle}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.tertiary} />
-    </Pressable>
   )
 }
 
@@ -560,211 +429,139 @@ function HomeScreen() {
   const { mode, setMode } = useThemeStore()
   const [facet, setFacet] = useState<Facet>('colour')
 
-  // "See the tokens" jumps to the design-system card rather than opening
-  // anything new — the screen is short enough to travel.
-  const scrollRef = useRef<ScrollView>(null)
-  const tokensY = useRef(0)
-  const showTokens = useCallback(() => {
-    scrollRef.current?.scrollTo({ y: Math.max(tokensY.current - spacing.lg, 0), animated: true })
-  }, [])
+  // The scroll position drives the glass NavBar.
+  const scrollY = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y
+  })
 
-  // One slow 0 → 1 → 0 clock for the glows, and a steady turn for the ring.
-  const clock = useSharedValue(0)
-  const spin = useSharedValue(0)
+  // Two slow 0 → 1 → 0 clocks: one for the glow, a slower one for the picture.
+  const glowClock = useSharedValue(0)
+  const heroClock = useSharedValue(0)
   useEffect(() => {
     if (!animate) {
-      clock.value = 0
-      spin.value = 0
+      glowClock.set(0)
+      heroClock.set(0)
       return
     }
-    clock.value = withRepeat(
-      withTiming(1, { duration: 8000, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true
+    glowClock.set(
+      withRepeat(withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.sin) }), -1, true)
     )
-    spin.value = withRepeat(withTiming(360, { duration: 12_000, easing: Easing.linear }), -1, false)
-  }, [animate, clock, spin])
-  const ringStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${spin.value}deg` }],
-  }))
+    heroClock.set(
+      withRepeat(withTiming(1, { duration: 16_000, easing: Easing.inOut(Easing.sin) }), -1, true)
+    )
+  }, [animate, glowClock, heroClock])
 
-  // Home is open to everyone — no user just means a neutral greeting
+  // Home is open to everyone — no user just means a neutral greeting.
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? null
   const today = useMemo(
-    () =>
-      new Date()
-        .toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
-        .toUpperCase(),
+    () => new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }),
     []
   )
+  const cycleTheme = () => setMode(NEXT_MODE[mode])
+  const goProfile = () => router.push('/(tabs)/profile')
 
   return (
     <View style={styles.container}>
-      <View style={styles.backdrop} pointerEvents="none">
-        <Glow clock={clock} colors={colors} style={[styles.glow, styles.glowOne]} drift={{ x: -30, y: 24 }} />
-        <Glow clock={clock} colors={colors} style={[styles.glow, styles.glowTwo]} drift={{ x: 28, y: -18 }} />
-        <Glow clock={clock} colors={colors} style={[styles.glow, styles.glowThree]} drift={{ x: -20, y: -30 }} />
-      </View>
+      <Glow clock={glowClock} colors={colors} style={styles.glow} />
 
-      <ScrollView
-        ref={scrollRef}
+      <Animated.ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: tabBarPadding }}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.lg, paddingBottom: tabBarPadding },
+        ]}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
         accessibilityLabel="Home screen"
       >
-        <Animated.View
-          entering={FadeInDown.duration(400)}
-          style={[styles.band, { paddingTop: insets.top + spacing.xl }]}
-        >
-          <View style={styles.bandTop}>
-            <View style={styles.avatarWrap}>
-              <Animated.View style={[styles.avatarRing, ringStyle]} pointerEvents="none" />
-              <Avatar source={profile?.photo_url} name={displayName ?? 'Guest'} size="md" />
-            </View>
-
-            {/* A working control, not a badge: it switches the whole app's
-                theme, and every colour on this screen follows. */}
-            <Pressable
-              style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
-              onPress={() => setMode(NEXT_MODE[mode])}
-              accessibilityRole="button"
-              accessibilityLabel={`Appearance: ${MODE_META[mode].label}`}
-              accessibilityHint={`Double tap to switch to ${MODE_META[NEXT_MODE[mode]].label.toLowerCase()}`}
-            >
-              <Ionicons name={MODE_META[mode].icon} size={15} color={colors.accent} />
-              <Text variant="label">{MODE_META[mode].label}</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.greeting}>
-            <Text variant="caption" color="tertiary" weight="semibold" style={styles.eyebrow}>
-              {today}
-            </Text>
-            <Text variant="h1">{displayName ? `Hi, ${displayName}` : 'Welcome'}</Text>
-            <Text variant="bodySmall" color="secondary">
-              {user?.email ?? 'Your app, ready to be shaped.'}
-            </Text>
-          </View>
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.topRow}>
+          <Pressable
+            onPress={goProfile}
+            accessibilityRole="button"
+            accessibilityLabel="Your profile"
+            hitSlop={spacing.sm}
+          >
+            <Avatar source={profile?.photo_url} name={displayName} size="md" />
+          </Pressable>
+          <ThemePill mode={mode} onPress={cycleTheme} animate={animate} styles={styles} />
         </Animated.View>
 
-        <View style={styles.sections}>
-          {/* The spotlight card — the shape a real app's first card takes:
-              a label, a headline, a line of copy, two actions. */}
-          <Animated.View entering={FadeInDown.delay(100).duration(400)}>
-            <Card>
-              <View style={styles.cardText}>
-                <View style={styles.eyebrowRow}>
-                  <View style={styles.dot} />
-                  <Text variant="caption" color="accent" weight="semibold" style={styles.eyebrow}>
-                    YOUR APP
-                  </Text>
-                </View>
-                <Text variant="h2">Make it yours</Text>
-                <LinearGradient
-                  colors={[colors.accent, `${colors.accent}00`]}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={styles.rule}
-                />
-                <Text variant="bodySmall" color="secondary">
-                  Every colour, corner and shadow on this screen comes from one
-                  theme file. Change a token there and the whole app follows —
-                  starting here.
-                </Text>
-              </View>
-              <View style={styles.actions}>
-                <Button size="sm" onPress={showTokens}>
-                  See the tokens
-                </Button>
-                <Button size="sm" variant="ghost" onPress={() => router.push('/(tabs)/profile')}>
-                  Your profile
-                </Button>
-              </View>
-            </Card>
-          </Animated.View>
+        <Animated.View entering={FadeInDown.delay(60).duration(400)} style={styles.greeting}>
+          <Text variant="caption" color="secondary" weight="semibold" style={styles.eyebrow}>
+            {today}
+          </Text>
+          <Text variant="h1">{displayName ? `Hi, ${displayName}` : 'Hi there'}</Text>
+          <Text variant="body" color="secondary">
+            Your app, ready to be shaped.
+          </Text>
+        </Animated.View>
 
-          {/* The design system, showing itself: palette, type scale, shapes. */}
-          <Animated.View
-            entering={FadeInDown.delay(180).duration(400)}
-            onLayout={(event: LayoutChangeEvent) => {
-              tokensY.current = event.nativeEvent.layout.y
-            }}
+        <Animated.View entering={FadeInDown.delay(120).duration(400)}>
+          <Hero clock={heroClock} styles={styles} />
+        </Animated.View>
+
+        {/* Two tiles — the shape a real app's shortcuts take. Both work. */}
+        <Animated.View entering={FadeInDown.delay(180).duration(400)} style={styles.tiles}>
+          <Card style={styles.tile} onPress={goProfile} accessibilityLabel="Profile" accessibilityHint="Opens your profile">
+            <Ionicons name="person-outline" size={24} color={colors.text} />
+            <View style={styles.tileText}>
+              <Text variant="label" weight="semibold">
+                Profile
+              </Text>
+              <Text variant="caption" color="secondary">
+                Make it yours
+              </Text>
+            </View>
+          </Card>
+          <Card
+            style={styles.tile}
+            onPress={cycleTheme}
+            accessibilityLabel={`Appearance: ${MODE_LABEL[mode]}`}
+            accessibilityHint={`Double tap to switch to ${MODE_LABEL[NEXT_MODE[mode]].toLowerCase()}`}
           >
-            <Card>
-              <View style={styles.cardText}>
-                <Text variant="h3">Design system</Text>
-                <Text variant="bodySmall" color="secondary">
-                  The tokens this app is drawn from, in {isDark ? 'dark' : 'light'} mode.
-                </Text>
-              </View>
+            <Ionicons name="contrast-outline" size={24} color={colors.text} />
+            <View style={styles.tileText}>
+              <Text variant="label" weight="semibold">
+                Appearance
+              </Text>
+              <Text variant="caption" color="secondary">
+                {MODE_LABEL[mode]}
+              </Text>
+            </View>
+          </Card>
+        </Animated.View>
 
-              <Segments
-                value={facet}
-                onChange={setFacet}
-                animate={animate}
-                styles={styles}
-              />
-
-              <View style={styles.panel}>
-                <Animated.View key={facet} entering={animate ? FadeIn.duration(220) : undefined}>
-                  {facet === 'colour' && <ColourPanel colors={colors} styles={styles} />}
-                  {facet === 'type' && <TypePanel styles={styles} />}
-                  {facet === 'shape' && <ShapePanel styles={styles} />}
-                </Animated.View>
-              </View>
-            </Card>
+        {/* The design system, showing itself: palette, type scale, shapes. */}
+        <Animated.View entering={FadeInDown.delay(240).duration(400)} style={styles.section}>
+          <Text variant="caption" color="secondary" style={styles.sectionHeader}>
+            Design system · {isDark ? 'dark' : 'light'}
+          </Text>
+          <Segmented
+            options={FACETS}
+            value={facet}
+            onChange={setFacet}
+            accessibilityLabel="Design system tokens"
+          />
+          <Animated.View key={facet} entering={animate ? FadeIn.duration(220) : undefined}>
+            {facet === 'colour' && <ColourPanel colors={colors} styles={styles} />}
+            {facet === 'type' && <TypePanel styles={styles} />}
+            {facet === 'shape' && <ShapePanel styles={styles} />}
           </Animated.View>
+        </Animated.View>
 
-          {/* Where to go next — real destinations, no dead ends. */}
-          <Animated.View entering={FadeInDown.delay(260).duration(400)}>
-            <Card>
-              <View style={styles.rows}>
-                <RowLink
-                  icon="person-circle-outline"
-                  title="Your profile"
-                  subtitle="Photo, name and appearance"
-                  onPress={() => router.push('/(tabs)/profile')}
-                  styles={styles}
-                  colors={colors}
-                />
-                {user ? (
-                  <>
-                    <View style={styles.divider} />
-                    <RowLink
-                      icon="create-outline"
-                      title="Edit your details"
-                      subtitle="Change how your name appears"
-                      onPress={() => router.push('/(tabs)/edit-profile')}
-                      styles={styles}
-                      colors={colors}
-                    />
-                  </>
-                ) : (
-                  backendConfigured && (
-                    <>
-                      <View style={styles.divider} />
-                      <RowLink
-                        icon="log-in-outline"
-                        title="Sign in"
-                        subtitle="Bring your account with you"
-                        onPress={() => router.push('/(auth)/sign-in')}
-                        styles={styles}
-                        colors={colors}
-                      />
-                    </>
-                  )
-                )}
-              </View>
-            </Card>
-          </Animated.View>
+        {/* Where the pieces live. */}
+        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
+          <ListGroup header="Under the hood">
+            <ListRow title="Theme tokens" detail={<Text variant="mono">theme.ts</Text>} />
+            <ListRow title="Navigation" detail={<Text variant="mono">expo-router</Text>} />
+            <ListRow title="Theme memory" detail={<Text variant="mono">zustand</Text>} />
+          </ListGroup>
+        </Animated.View>
+      </Animated.ScrollView>
 
-          <Animated.View entering={FadeInDown.delay(340).duration(400)} style={styles.footer}>
-            <Text variant="caption" color="tertiary">
-              Every token on this screen lives in src/lib/theme.ts
-            </Text>
-          </Animated.View>
-        </View>
-      </ScrollView>
+      <NavBar title="Home" scrollY={scrollY} />
     </View>
   )
 }

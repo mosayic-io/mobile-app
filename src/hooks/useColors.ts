@@ -1,6 +1,6 @@
 import { useColorScheme } from 'react-native'
 
-import { getColors, resolveIsDark, type Colors } from '@/src/lib/theme'
+import { getColors, getShadows, resolveIsDark, type Colors, type Shadows } from '@/src/lib/theme'
 import { useThemeStore } from '@/src/stores/themeStore'
 
 export function useIsDark(): boolean {
@@ -12,4 +12,8 @@ export function useIsDark(): boolean {
 
 export function useColors(): Colors {
   return getColors(useIsDark())
+}
+
+export function useShadows(): Shadows {
+  return getShadows(useIsDark())
 }

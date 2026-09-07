@@ -104,12 +104,12 @@ const createStyles = (colors: Colors) =>
       paddingHorizontal: spacing.lg,
     },
     dialogCard: {
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.card,
       padding: spacing.lg,
       gap: spacing.md,
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.edge,
     },
     dialogContent: {
       gap: spacing.md,

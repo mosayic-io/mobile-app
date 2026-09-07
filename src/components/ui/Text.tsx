@@ -8,9 +8,9 @@ import {
 } from 'react-native'
 
 import { useColors } from '@/src/hooks/useColors'
-import { fontSize, fontWeight, type Colors } from '@/src/lib/theme'
+import { fontFamily, fontSize, fontWeight, type Colors } from '@/src/lib/theme'
 
-type TextVariant = 'h1' | 'h2' | 'h3' | 'body' | 'bodySmall' | 'caption' | 'label'
+type TextVariant = 'h1' | 'h2' | 'h3' | 'body' | 'bodySmall' | 'caption' | 'label' | 'mono'
 type TextColor = 'primary' | 'secondary' | 'tertiary' | 'accent' | 'danger' | 'success'
 
 type TextProps = RNTextProps & {
@@ -24,8 +24,11 @@ const createStyles = (colors: Colors) =>
   StyleSheet.create({
     // Variants
     h1: {
+      // The large title at the top of a screen.
       fontSize: fontSize['3xl'],
+      lineHeight: fontSize['3xl'] + 7,
       fontWeight: fontWeight.bold,
+      letterSpacing: 0.2,
       color: colors.text,
     },
     h2: {
@@ -36,11 +39,13 @@ const createStyles = (colors: Colors) =>
     h3: {
       fontSize: fontSize.xl,
       fontWeight: fontWeight.semibold,
+      letterSpacing: -0.26,
       color: colors.text,
     },
     body: {
       fontSize: fontSize.base,
       fontWeight: fontWeight.normal,
+      letterSpacing: -0.3,
       color: colors.text,
     },
     bodySmall: {
@@ -56,7 +61,15 @@ const createStyles = (colors: Colors) =>
     label: {
       fontSize: fontSize.sm,
       fontWeight: fontWeight.medium,
+      letterSpacing: -0.1,
       color: colors.text,
+    },
+    // Token values, versions, file names — anything that's really code.
+    mono: {
+      fontFamily: fontFamily.mono,
+      fontSize: fontSize.xs,
+      fontWeight: fontWeight.normal,
+      color: colors.secondary,
     },
     // Colors
     colorPrimary: {

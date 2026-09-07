@@ -40,7 +40,7 @@ const createStyles = (colors: Colors) =>
       alignItems: 'center',
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: borderRadius.md,
+      borderRadius: borderRadius.control,
       backgroundColor: colors.surface,
     },
     inputContainerFocused: {

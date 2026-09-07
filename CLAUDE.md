@@ -41,13 +41,13 @@ These documentation files are specifically formatted for AI agents and should be
 │   └── _layout.tsx            # Root layout with providers; no auth guard — screens check `user` themselves
 ├── src/
 │   ├── components/            # Shared React components
-│   │   ├── ui/                # UI primitives (Button, Input, Text, Avatar, Card)
+│   │   ├── ui/                # UI primitives (Button, Input, Text, Avatar, Card, ListGroup/ListRow, Segmented, NavBar)
 │   │   ├── forms/             # Form components (FormInput with react-hook-form)
 │   │   └── error/             # Error boundaries (ErrorBoundary, ScreenErrorBoundary)
 │   ├── features/              # Feature-based modules
 │   │   ├── auth/              # Authentication (stores, hooks)
 │   │   └── profile/           # User profile (hooks)
-│   ├── hooks/                 # Global custom hooks (useColors, useIsDark, useTabBarPadding — the tab bar floats, screens pad under it)
+│   ├── hooks/                 # Global custom hooks (useColors, useIsDark, useShadows, useTabBarPadding — the tab bar floats, screens pad under it)
 │   ├── lib/                   # Libraries and utilities
 │   │   ├── env.ts             # Env reading + `backendConfigured` (the app runs without a backend)
 │   │   ├── embed.ts           # Web build inside a phone-shaped iframe: `?insets=top,bottom` → safe-area insets; posts the colour scheme to the parent
@@ -55,7 +55,7 @@ These documentation files are specifically formatted for AI agents and should be
 │   │   ├── notifications.ts   # Push notification utilities
 │   │   ├── supabase.ts        # Supabase client configuration
 │   │   ├── queryClient.ts     # TanStack Query configuration
-│   │   ├── theme.ts           # Theme colors, spacing, typography
+│   │   ├── theme.ts           # Theme colors, spacing, typography, radii, shadows
 │   │   └── validations/       # Zod validation schemas
 │   ├── stores/                # Global Zustand stores (themeStore, notificationStore)
 │   └── types/                 # TypeScript type definitions
@@ -114,13 +114,16 @@ Reusable, theme-aware building blocks used across the entire application:
 
 - `Button` - Pressable button with variants (primary, secondary, outline, ghost, danger)
 - `Input` - Text input with label, error, and hint support
-- `Text` - Typography component with variants (h1, h2, body, bodySmall, caption)
-- `Avatar` - User avatar component
-- `Card` - Themed surface container for grouping related content
+- `Text` - Typography component with variants (h1 = the large title, h2, h3, body, bodySmall, caption, label, mono)
+- `Avatar` - User avatar: photo, or initials / a person glyph on an accent wash
+- `Card` - Surface container with the card radius, a hairline edge and one soft shadow; give it `onPress` and it becomes a tile that dips when pressed
+- `ListGroup` / `ListRow` - The iOS inset grouped list (Settings-style): an uppercase header, rows on one rounded surface separated by hairlines; rows take a `detail`, a `leading` swatch/icon, a chevron, a `tone` (accent / danger) and `onPress`
+- `Segmented` - The iOS segmented control: a pill track with a thumb that slides to the selected option
+- `NavBar` - The glass navigation bar that fades in once a screen's large title scrolls away; screens pass it the `scrollY` shared value from `useAnimatedScrollHandler`
 
 **Usage**: Import from `@/src/components/ui`:
 ```tsx
-import { Button, Text, Input, Avatar, Card } from '@/src/components/ui'
+import { Button, Text, Input, Avatar, Card, ListGroup, ListRow, Segmented, NavBar } from '@/src/components/ui'
 ```
 
 ### Form Components (`src/components/forms/`)
@@ -162,11 +165,18 @@ For components that are only used within a single screen, define them within the
 ### Theme Structure (`src/lib/theme.ts`)
 
 ```tsx
-// Colors (light and dark mode)
+// Colors (light and dark mode) — the iOS system palette: grouped-background
+// grey with white surfaces (light), black with #1C1C1E surfaces (dark);
+// secondary / tertiary / border are translucent so they sit on any surface.
 export const lightColors = {
   background, surface, text, secondary, tertiary,
-  border, primary, accent, danger, warning, success,
-  onDanger, overlay
+  border,        // hairline separators
+  edge,          // the barely-there outline around a card
+  primary, onPrimary,
+  accent, accentSoft,   // accentSoft = the accent at 16%: avatar washes, chips
+  danger, warning, success, onDanger, overlay,
+  glassNav, glassTab,   // translucent fills over the blur (NavBar, tab bar)
+  segmentTrack, segmentThumb,
 }
 export const darkColors = { ... }
 
@@ -177,8 +187,15 @@ export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 }
 export const fontSize = { xs: 12, sm: 14, base: 16, lg: 18, xl: 24, '2xl': 28, '3xl': 32 }
 export const fontWeight = { normal: '400', medium: '500', semibold: '600', bold: '700' }
 
-// Border radius scale
-export const borderRadius = { sm: 8, md: 12, lg: 16, full: 9999 }
+// Typefaces — the system font everywhere, plus a mono face for token values / code
+export const fontFamily = { mono }
+
+// Border radius scale — `card` for every grouping surface, `control` for
+// buttons and inputs, `sm` / `md` for small things, `full` for pills and circles
+export const borderRadius = { sm: 8, md: 12, control: 14, card: 26, full: 9999 }
+
+// Shadows — one soft card elevation, deeper in dark mode; read via useShadows()
+export const shadows = { light: { card }, dark: { card } }
 ```
 
 ### Accessing Theme Colors
@@ -217,8 +234,8 @@ const createStyles = (colors: Colors) =>
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.md,
-      borderColor: colors.border,
+      borderRadius: borderRadius.card,
+      borderColor: colors.edge,
     },
   })
 
@@ -296,7 +313,7 @@ Use these libraries for their respective purposes. Do not introduce alternative 
 | Push Notifications | `expo-notifications` | Configured in `lib/notifications.ts` |
 | Icons | `@expo/vector-icons` | Use Ionicons or other included icon sets |
 | Vector Graphics | `react-native-svg` | Gradients and custom shapes |
-| Glass surfaces | `expo-blur` | The blur under `Card` and the floating tab bar (the "liquid glass" look — fill/edge colours are the `glassFill` / `glassEdge` theme tokens) |
+| Glass surfaces | `expo-blur` | The blur under the floating tab bar and the `NavBar` (fills are the `glassTab` / `glassNav` theme tokens). Cards are opaque `surface`. |
 | Social Auth | `@react-native-google-signin/google-signin`, `expo-apple-authentication` | Google and Apple sign-in |
 
 

@@ -1,2 +1,2 @@
-export { useColors, useIsDark } from './useColors'
+export { useColors, useIsDark, useShadows } from './useColors'
 export { useTabBarPadding } from './useTabBarPadding'
