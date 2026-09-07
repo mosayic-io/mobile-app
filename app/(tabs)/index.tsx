@@ -51,7 +51,11 @@ import { ScreenErrorBoundary } from '@/src/components/error'
 // drifts the way a photo does on a lock screen, and the dot on the theme
 // pill pulses.
 
-const HERO = require('../../assets/images/home-hero.jpg')
+// The cover picture is fetched, not bundled — nothing to delete when you
+// replace it with your own. (Unsplash; free to use.)
+const HERO = {
+  uri: 'https://images.unsplash.com/photo-1594730900439-6a1bb8504ea4?fm=jpg&q=70&w=1200&auto=format&fit=crop',
+}
 
 const FACETS = [
   { value: 'colour', label: 'Colour' },
