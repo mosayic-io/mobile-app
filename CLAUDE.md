@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+It runs in a **development build** (`expo-dev-client`) — Expo Go is NOT supported and must never be suggested: the app pre-installs native modules, and the Expo Go app in the stores lags behind the SDK.
+
+## Production is not a place you run things
+
+The app has a development backend (the Supabase running in Docker from the API repo next door) and a production one (the hosted Supabase project). You may READ production in a limited sense — check whether an environment variable or secret exists, look at a build's status — and SET a secret when the user explicitly asks. You must NEVER run scripts, one-off commands or SQL against the production database, and never point a local run at it with production keys in `.env`. Schema changes reach production only as migration files in the API repo, shipped by a release. If a task seems to need production data, stop and ask.
+
+## The app's identity — set once
+
+`app.json` ships with placeholders: `name`, `slug`, `scheme` (`yourappname`) and `ios.bundleIdentifier` / `android.package` (`com.yourcompany.yourappname`). Naming the app is the first task on a new project, and then those values are left alone — the bundle id is **permanent** once anything has been built or submitted, and the `scheme` is what the links site's `site.config.json` (`appScheme`) and every deep link rely on. `extra.eas.projectId` is written by `eas init` — never by hand. The `version` fields stay at `0.0.1` until you ship: bump them for a release, never for a build.
+
 ## Documentation Resources
 
 When working on this project, **always consult the official Expo documentation** available at:
@@ -74,6 +84,19 @@ guard — a screen that needs a user checks `useAuthStore().user` itself (see
 `src/lib/env.ts` is false, the Supabase client throws a clear error only when
 first used, and Profile explains that Supabase needs connecting before sign-in.
 
+## Native code means a rebuild
+
+A development build is compiled once per device and then only `npm start` is needed — until a package with **native code** is added, which means a new build (`eas build --profile development`, or `npm run ios` / `npm run android` locally). So:
+
+- Prefer what's already installed (see Installed Libraries — `expo-image-picker`, `expo-blur`, `expo-notifications` and the rest are pre-built into every development build so a feature never forces a rebuild). Pure-JS libraries can be added freely.
+- Install with `npx expo install <package>`, never plain `npm install` for runtime packages — it picks versions compatible with this SDK.
+- Don't add a native package on someone's behalf mid-feature: build the feature with what's installed, and say which package it would need.
+- Ship with `eas build --profile production` (bump `version` in `app.json` first), then submit. `eas.json` holds the profiles.
+
+## Before you call a change done
+
+`npm run typecheck` (`tsc --noEmit`) passes and `npm run lint` is clean. A screen that doesn't compile is not a feature.
+
 ## Supabase Backend & Migrations
 
 This mobile app relies on a **separate Supabase repository** containing database migrations and backend configuration.
@@ -104,7 +127,16 @@ parent-folder/
 - Generating TypeScript types from the schema
 - Making any database-related changes
 
-The `src/types/database.ts` file in this repo is generated from the Supabase schema and should stay in sync with the migrations.
+The `src/types/database.ts` file in this repo is generated from the Supabase schema and should stay in sync with the migrations. Never edit it by hand — after a migration is applied locally, regenerate it from the API folder: `npx supabase gen types typescript --local > ../<this repo>/src/types/database.ts`.
+
+### Files and uploads (Supabase Storage)
+
+Files live in Storage, not in the database. The bucket and its rules are a migration in the API repo (see its `CLAUDE.md`); on this side:
+
+- Every file goes at a path inside the user's own folder: `${user.id}/avatar.jpg` — the policies depend on it.
+- Upload with `supabase.storage.from(bucket).upload(path, body, { upsert: true, contentType })` where `body` is an **ArrayBuffer** (`await fetch(uri).then((r) => r.arrayBuffer())`). Never a Blob or FormData from React Native — that uploads empty files on some devices.
+- Keep uploads small (`expo-image-picker`'s `quality` ≈ 0.7, `allowsEditing` for a square crop), overwrite with `upsert` so versions don't pile up, and append `?v=${Date.now()}` to a replaced image's URL so it isn't served from cache.
+- Public buckets (avatars) are read by public URL; private ones through signed URLs.
 
 ## Component Architecture
 
