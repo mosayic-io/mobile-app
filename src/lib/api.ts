@@ -2,14 +2,29 @@ import { apiConfigured, readEnv } from '@/src/lib/env'
 import { supabase } from '@/src/lib/supabase'
 
 // ── Account deletion ────────────────────────────────────────────────────────
-// A Postgres function in the -api repo's migrations, not an API call: Apple
-// and Google require in-app account deletion, and this way it works the moment
-// the database exists — before any server is deployed. The function deletes
-// only the calling user (auth.uid() from the session token) and can't be
-// pointed at anyone else.
+// Apple and Google require an in-app way to delete an account. This template
+// ships TWO ways to do it, and the constant below picks one:
+//
+//   'database' — `supabase.rpc('delete_own_account')`: a Postgres function in
+//                the -api repo's migrations. Works the moment the database
+//                exists, before any server is deployed, so the app is
+//                store-ready without deploying the API. The default.
+//   'api'      — `DELETE /auth/users/me` on the Python API: the same deletion
+//                done by the server (the endpoint the "Deleting Users" lesson
+//                walks through). Needs EXPO_PUBLIC_API_URL and the API running
+//                — and, before the store, deployed.
+//
+// Both delete only the signed-in user: the id comes from the session token
+// and can't be pointed at anyone else. Flip the constant to switch; nothing
+// else changes.
+export const ACCOUNT_DELETION = 'database' as 'database' | 'api'
 
 /** Delete the signed-in user's account. */
 export async function deleteAuthUser(): Promise<void> {
+  if (ACCOUNT_DELETION === 'api') {
+    await apiFetch('/auth/users/me', { method: 'DELETE' })
+    return
+  }
   const { error } = await supabase.rpc('delete_own_account')
   if (error) throw new Error(error.message)
 }
