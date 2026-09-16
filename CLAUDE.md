@@ -88,7 +88,7 @@ first used, and Profile explains that Supabase needs connecting before sign-in.
 
 A development build is compiled once per device and then only `npm start` is needed — until a package with **native code** is added, which means a new build (`eas build --profile development`, or `npm run ios` / `npm run android` locally). So:
 
-- Prefer what's already installed (see Installed Libraries — `expo-image-picker`, `expo-blur`, `expo-notifications` and the rest are pre-built into every development build so a feature never forces a rebuild). Pure-JS libraries can be added freely.
+- Prefer what's already installed (see Installed Libraries — `expo-image-picker`, `expo-blur`, `expo-notifications`, `@expo/ui` and the rest are pre-built into every development build so a feature never forces a rebuild). Pure-JS libraries can be added freely.
 - Install with `npx expo install <package>`, never plain `npm install` for runtime packages — it picks versions compatible with this SDK.
 - Don't add a native package on someone's behalf mid-feature: build the feature with what's installed, and say which package it would need.
 - Ship with `eas build --profile production` (bump `version` in `app.json` first), then submit. `eas.json` holds the profiles.
@@ -157,6 +157,16 @@ Reusable, theme-aware building blocks used across the entire application:
 ```tsx
 import { Button, Text, Input, Avatar, Card, ListGroup, ListRow, Segmented, NavBar } from '@/src/components/ui'
 ```
+
+### Native controls (`@expo/ui`)
+
+`@expo/ui` renders real SwiftUI views on iOS and Jetpack Compose views on Android. The template's own primitives above stay the default for the app's look; reach for `@expo/ui` when a feature needs a **native control** they don't cover — a switch, slider, picker, date/time picker, bottom sheet, context menu, checkbox, collapsible section.
+
+- Import from the universal entry, `@expo/ui` — it picks SwiftUI or Compose per platform and has a web fallback, so the web build (the phone-shaped preview) keeps working.
+- Native views live inside a `Host`: `<Host matchContents><Switch … /></Host>`. Pass `colorScheme` and `seedColor={colors.accent}` from `useColors()` so the control follows the app's theme instead of the platform default.
+- The drop-in community replacements (`@expo/ui/community/datetime-picker`, `/bottom-sheet`, `/picker`, `/slider`, `/segmented-control`, `/menu`, …) are the pick over installing `@react-native-community/*` packages — they're already in the build.
+- `@expo/ui/swift-ui` and `@expo/ui/jetpack-compose` are the full platform toolkits (with `/modifiers`). They don't render on web, so use them only in `.ios.tsx` / `.android.tsx` files with a fallback beside them.
+- Docs: https://docs.expo.dev/versions/latest/sdk/ui/
 
 ### Form Components (`src/components/forms/`)
 
@@ -345,6 +355,7 @@ Use these libraries for their respective purposes. Do not introduce alternative 
 | Push Notifications | `expo-notifications` | Configured in `lib/notifications.ts` |
 | Icons | `@expo/vector-icons` | Use Ionicons or other included icon sets |
 | Vector Graphics | `react-native-svg` | Gradients and custom shapes |
+| Native controls | `@expo/ui` | SwiftUI / Jetpack Compose controls (switch, slider, pickers, bottom sheet, menus) inside a `Host` — see Native controls above |
 | Glass surfaces | `expo-blur` | The blur under the floating tab bar and the `NavBar` (fills are the `glassTab` / `glassNav` theme tokens). Cards are opaque `surface`. |
 | Social Auth | `@react-native-google-signin/google-signin`, `expo-apple-authentication` | Google and Apple sign-in |
 
