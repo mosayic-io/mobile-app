@@ -22,6 +22,7 @@ import { Button, Text } from '@/src/components/ui'
 import { useNotificationStore, useThemeHydration } from '@/src/stores'
 import { spacing } from '@/src/lib/theme'
 import { embedInsets, isEmbedded, useEmbedThemeBridge } from '@/src/lib/embed'
+import { addPushTokenChangeListener } from '@/src/lib/notifications'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -121,7 +122,8 @@ function RootLayoutNav() {
     initialize()
   }, [initialize])
 
-  // Refresh notification token when app returns to foreground
+  // Re-save the push token (signed-in users only) each time the app returns to
+  // the foreground, and whenever the OS rotates it
   useEffect(() => {
     if (!session?.user?.id) return
 
@@ -134,8 +136,13 @@ function RootLayoutNav() {
     }
 
     const subscription = AppState.addEventListener('change', handleAppStateChange)
+    // The OS rotated this device's push token while the app was running
+    const tokenSubscription = Platform.OS === 'web' ? null : addPushTokenChangeListener(() => void ensureToken(userId))
 
-    return () => subscription.remove()
+    return () => {
+      subscription.remove()
+      tokenSubscription?.remove()
+    }
   }, [ensureToken, session?.user?.id])
 
   const isReady = isInitialized && themeHydrated

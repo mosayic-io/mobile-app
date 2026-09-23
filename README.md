@@ -175,7 +175,7 @@ Then reference in `eas.json`:
 
 ### Token Storage
 
-Push tokens are automatically stored in the `devices` table (one row per device) when users sign in.
+Push tokens are stored in the `devices` table (one row per user and device), and only for a signed-in user. The app asks for notification permission right after sign-in, then re-saves the token on every cold start, auth change and return to the foreground, and whenever the OS rotates it. A row deleted server-side, or notifications switched on later in system Settings, is picked up the next time the app opens. Signing out deletes the row.
 
 ## Commands
 
@@ -295,7 +295,7 @@ npx supabase gen types typescript --project-id your-project-id > src/types/datab
 
 ### Push Notifications Not Working
 
-1. Check device is physical (simulators don't support push)
+1. Check device is physical (the iOS Simulator never receives a push token)
 2. Verify `google-services.json` is present for Android and referenced via `googleServicesFile` in `app.json`
 3. Verify iOS push credentials in EAS
 4. Check rows are being created in the `devices` table

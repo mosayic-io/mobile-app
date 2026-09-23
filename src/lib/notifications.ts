@@ -28,6 +28,14 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * The current notification permission, without asking the user
+ */
+export async function getNotificationPermissionStatus(): Promise<Notifications.PermissionStatus> {
+  const { status } = await Notifications.getPermissionsAsync()
+  return status
+}
+
+/**
  * Request notification permissions from the user
  */
 export async function requestNotificationPermissions(): Promise<boolean> {
@@ -145,6 +153,14 @@ export async function removePushTokenFromDevice(userId: string, token: string): 
     console.error('Failed to remove push token:', error)
     throw error
   }
+}
+
+/**
+ * Add a listener for when the OS issues this device a new push token
+ * (APNs / FCM rotate them). Re-register the Expo token when it fires.
+ */
+export function addPushTokenChangeListener(callback: () => void): Notifications.EventSubscription {
+  return Notifications.addPushTokenListener(() => callback())
 }
 
 /**
