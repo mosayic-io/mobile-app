@@ -42,12 +42,14 @@ These documentation files are specifically formatted for AI agents and should be
 │   ├── (auth)/                # Sign-in flow, pushed from Profile → "Sign in"
 │   │   ├── sign-in.tsx        # Sign-in method selection (Google/Apple/email)
 │   │   ├── email-auth.tsx     # Email sign in/sign up screen
+│   │   ├── verify-email.tsx   # Waiting for the confirmation link (only when email confirmation is on)
 │   │   └── _layout.tsx        # Auth stack layout (returns to Profile once signed in)
 │   ├── (tabs)/                # Tab-based navigation — open to everyone
 │   │   ├── index.tsx          # Home screen (public; shows the design preview)
 │   │   ├── profile.tsx        # Profile screen (signed-out state holds the "Sign in" button)
 │   │   ├── edit-profile.tsx   # Edit profile screen (signed-in only)
 │   │   └── _layout.tsx        # Tabs layout
+│   ├── email-confirmed.tsx    # Where the confirmation link opens on Android (the links host is the app's); finishes sign-in, goes to Profile
 │   └── _layout.tsx            # Root layout with providers; no auth guard — screens check `user` themselves
 ├── src/
 │   ├── components/            # Shared React components
@@ -83,6 +85,20 @@ guard — a screen that needs a user checks `useAuthStore().user` itself (see
 `.env.example` placeholders, or no `.env`): `backendConfigured` in
 `src/lib/env.ts` is false, the Supabase client throws a clear error only when
 first used, and Profile explains that Supabase needs connecting before sign-in.
+
+**Email confirmation ships OFF** (the API repo's `supabase/config.toml`
+`enable_confirmations = false`, and the hosted project's "Confirm email"
+toggle): sign up, and you're in. The app is nevertheless complete for the day
+it is switched on — nothing here needs changing: `signUp` then returns no
+session, the auth store keeps the password in memory and the sign-up's email
+in `pendingVerificationEmail`, `app/(auth)/verify-email.tsx` waits for the
+link (resend / "I have confirmed" / sign in another way), and the link lands
+on the links site's `/email-confirmed` page (`EXPO_PUBLIC_LINKS_URL`, see
+`src/lib/links.ts`) — or opens `app/email-confirmed.tsx` on Android, which
+claims the whole links host. Password-reset links go to the same site's
+`/reset-password`. With no links URL set, both redirects are omitted and
+Supabase falls back to its Site URL, which is right while everything is
+local.
 
 ## Native code means a rebuild
 

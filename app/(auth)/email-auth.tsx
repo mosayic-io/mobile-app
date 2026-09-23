@@ -206,9 +206,12 @@ function EmailAuthScreen() {
     setFormNotice(null)
     try {
       await signUp(data.email.trim(), data.password)
-      const message = 'We sent you a confirmation link to verify your account.'
-      setFormNotice({ tone: 'success', text: message })
-      Alert.alert('Check your email', message)
+      // Confirmation off (the default): there is a session already and the
+      // auth layout hands back to Profile. Confirmation on: no session yet —
+      // the next screen waits for the link in the email.
+      if (useAuthStore.getState().pendingVerificationEmail) {
+        router.push('/(auth)/verify-email')
+      }
     } catch (error) {
       showError('Sign Up Failed', error)
     }

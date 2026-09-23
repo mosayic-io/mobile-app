@@ -99,6 +99,13 @@ EXPO_PUBLIC_SUPABASE_PUB_KEY=your-anon-key
 EXPO_PUBLIC_APP_ENV=development
 ```
 
+`EXPO_PUBLIC_LINKS_URL` (the `links.<your domain>` site) is where Supabase's
+password-reset and email-confirmation links land. Leave the placeholder
+until the site is live — with it unset the app sends no redirect of its own
+and Supabase uses its Site URL. Email confirmation itself ships **off**; the
+screens for it (`verify-email`, `email-confirmed`) are already in place for
+the day you switch it on in Supabase.
+
 ### EAS Builds (eas.json)
 
 For EAS builds, configure environment variables in `eas.json`:
@@ -211,7 +218,8 @@ eas update --branch production --message "Description of update"
 
 ```
 ├── app/                    # Expo Router file-based routing
-│   ├── (auth)/             # Sign-in flow (sign-in, email-auth), opened from Profile
+│   ├── (auth)/             # Sign-in flow (sign-in, email-auth, verify-email), opened from Profile
+│   ├── email-confirmed.tsx # Android landing for the confirmation link (finishes sign-in)
 │   ├── (tabs)/             # Tab navigation (home is public; profile holds sign-in; edit-profile)
 │   └── _layout.tsx         # Root layout with providers
 ├── src/

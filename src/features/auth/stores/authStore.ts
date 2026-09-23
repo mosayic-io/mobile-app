@@ -3,10 +3,23 @@ import type { Session, User } from '@supabase/supabase-js'
 import { Platform } from 'react-native'
 
 import { backendConfigured } from '@/src/lib/env'
+import { EMAIL_CONFIRMED_URL, RESET_PASSWORD_URL } from '@/src/lib/links'
 import { supabase } from '@/src/lib/supabase'
 import { queryClient } from '@/src/lib/queryClient'
 import { useNotificationStore } from '@/src/stores/notificationStore'
 import { deleteAuthUser } from '@/src/lib/api'
+
+// Email confirmation is OFF by default (the API repo's supabase/config.toml,
+// and the hosted project's "Confirm email" toggle): sign up, and you're in.
+// Everything below still works when it is switched ON — sign-up then returns
+// no session, the app waits on the verify-email screen, and the confirmation
+// link lands on the links site's /email-confirmed page.
+//
+// The password from an email sign-up, held in memory only (never in the
+// store, never on disk) until the address is confirmed, so the verify-email
+// screen can sign the person in without asking for it again. A cold start
+// loses it, and then they sign in by hand.
+let pendingPassword: string | null = null
 
 type AuthState = {
   session: Session | null
@@ -14,6 +27,8 @@ type AuthState = {
   isLoading: boolean
   isInitialized: boolean
   initError: Error | null
+  /** Set after an email sign-up while the address is still unconfirmed. */
+  pendingVerificationEmail: string | null
 }
 
 type AuthActions = {
@@ -22,6 +37,11 @@ type AuthActions = {
   signInWithGoogle: () => Promise<void>
   signInWithApple: () => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
+  /** Sends the confirmation email again (only meaningful while confirmation is on). */
+  resendVerification: (email: string) => Promise<void>
+  /** Signs in with the sign-up's password; false while the email is still unconfirmed or the password is gone. */
+  completeVerification: () => Promise<boolean>
+  clearPendingVerification: () => void
   signOut: () => Promise<void>
   deleteAccount: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
@@ -37,6 +57,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isLoading: false,
   isInitialized: false,
   initError: null,
+  pendingVerificationEmail: null,
 
   setupAuthListener: () => {
     // No backend yet: nothing to listen to (see src/lib/env.ts, "unconfigured mode")
@@ -112,7 +133,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
 
-      const userId = data.user?.id ?? data.session?.user.id ?? get().user?.id
+      // Only a session can save a token: no session yet (e.g. email confirmation
+      // pending) means nothing is registered until the user actually signs in.
+      const userId = data.session?.user.id
       if (userId) {
         await useNotificationStore.getState().registerAndSaveToken(userId)
       }
@@ -155,7 +178,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       if (error) throw error
 
-      const userId = data.user?.id ?? data.session?.user.id ?? get().user?.id
+      // Only a session can save a token: no session yet (e.g. email confirmation
+      // pending) means nothing is registered until the user actually signs in.
+      const userId = data.session?.user.id
       if (userId) {
         const profileName =
           response.data.user?.name ??
@@ -237,7 +262,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       if (error) throw error
 
-      const userId = data.user?.id ?? data.session?.user.id ?? get().user?.id
+      // Only a session can save a token: no session yet (e.g. email confirmation
+      // pending) means nothing is registered until the user actually signs in.
+      const userId = data.session?.user.id
       if (userId) {
         await useNotificationStore.getState().registerAndSaveToken(userId)
       }
@@ -260,12 +287,26 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true })
 
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password })
+      const cleanEmail = email.trim().toLowerCase()
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        // Where the confirmation link lands, when confirmation is on. Unset
+        // (no links site yet) means Supabase uses its Site URL instead.
+        options: EMAIL_CONFIRMED_URL ? { emailRedirectTo: EMAIL_CONFIRMED_URL } : undefined,
+      })
       if (error) throw error
 
-      const userId = data.user?.id ?? data.session?.user.id ?? get().user?.id
+      // Only a session can save a token: no session yet (e.g. email confirmation
+      // pending) means nothing is registered until the user actually signs in.
+      const userId = data.session?.user.id
       if (userId) {
         await useNotificationStore.getState().registerAndSaveToken(userId)
+      } else {
+        // Confirmation is on: no session until the link in the email is
+        // opened. The verify-email screen takes it from here.
+        pendingPassword = password
+        set({ pendingVerificationEmail: cleanEmail })
       }
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Sign up failed')
@@ -273,6 +314,34 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } finally {
       set({ isLoading: false })
     }
+  },
+
+  resendVerification: async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: EMAIL_CONFIRMED_URL ? { emailRedirectTo: EMAIL_CONFIRMED_URL } : undefined,
+    })
+    if (error) throw error
+  },
+
+  completeVerification: async () => {
+    const email = get().pendingVerificationEmail
+    if (!email || !pendingPassword) return false
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pendingPassword })
+    if (error?.code === 'email_not_confirmed') return false
+    if (error) throw error
+    get().clearPendingVerification()
+    const userId = data.session?.user.id
+    if (userId) {
+      await useNotificationStore.getState().registerAndSaveToken(userId)
+    }
+    return true
+  },
+
+  clearPendingVerification: () => {
+    pendingPassword = null
+    set({ pendingVerificationEmail: null })
   },
 
   signOut: async () => {
@@ -333,7 +402,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true })
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      // The reset link lands on the links site's form when there is one;
+      // otherwise Supabase falls back to the project's Site URL.
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        RESET_PASSWORD_URL ? { redirectTo: RESET_PASSWORD_URL } : undefined
+      )
       if (error) throw error
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Password reset failed')
