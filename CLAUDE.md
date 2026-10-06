@@ -16,6 +16,8 @@ The app has a development backend (the Supabase running in Docker from the API r
 
 `app.json` ships with placeholders: `name`, `slug`, `scheme` (`yourappname`) and `ios.bundleIdentifier` / `android.package` (`com.yourcompany.yourappname`). Naming the app is the first task on a new project, and then those values are left alone — the bundle id is **permanent** once anything has been built or submitted, and the `scheme` is what the links site's `site.config.json` (`appScheme`) and every deep link rely on. `extra.eas.projectId` is written by `eas init` — never by hand. The `version` fields stay at `0.0.1` until you ship: bump them for a release, never for a build.
 
+**Never write `CFBundleURLTypes` under `ios.infoPlist`.** Anything set there replaces the URL types Expo generates at prebuild, and that generated list is where the app's own `scheme` (and the bundle id) are registered — so a hand-written block silently drops the `scheme`, and every `yourappname://` link, including the links site's "Open app" buttons, stops working on iOS while Google sign-in carries on as if nothing happened. Register extra schemes with the top-level `scheme` (it takes an array) or, for Google sign-in, the `@react-native-google-signin/google-signin` plugin's `iosUrlScheme`, which already adds the reversed client ID. Check with `npx expo config --type introspect` that `ios.infoPlist.CFBundleURLTypes` lists the `scheme`.
+
 ## Documentation Resources
 
 When working on this project, **always consult the official Expo documentation** available at:
