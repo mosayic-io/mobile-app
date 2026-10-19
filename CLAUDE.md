@@ -36,6 +36,16 @@ These documentation files are specifically formatted for AI agents and should be
 - Expo SDK modules and their usage
 - Development and deployment processes
 
+### Expo's own skills
+
+`.claude/settings.json` enables Expo's official Claude Code plugin (`expo@claude-plugins-official`) — the same file `create-expo-app` writes into new projects. Claude Code offers to install it the first time this folder is opened and trusted; it brings Expo's skills (`expo-router`, `expo-ui`, `expo-animation`, `expo-upgrade`, `eas-app-stores`, `eas-update` and more) and the Expo MCP server, which signs in to the user's Expo account with `/mcp`. When a task matches one of those skills, use it. Where a skill and this file disagree, this file wins: it knows this project (no Expo Go, the bundle id is permanent, production is not a place you run things).
+
+## SDK version
+
+Expo SDK 57 — React Native 0.86, React 19.2.3. To move to a newer SDK, use the `expo-upgrade` skill (or `npx expo install expo@^<sdk>.0.0 --fix`, then `npx expo-doctor`), then make a new development build. An SDK upgrade is native code, so it is never done mid-feature.
+
+iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas.json` without an `ios.image`, and don't set `enableSceneSupport` in `expo-build-properties`: an app built with Xcode 27 needs the scene life cycle to launch on iOS 27, and on SDK 57 that switch still loses cold-start deep links (the email-confirmation and password-reset links). SDK 58 is where scene support is the default and that bug is fixed — moving to Xcode 27 means moving to SDK 58.
+
 ## Project Structure
 
 ```
