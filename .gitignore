@@ -44,3 +44,6 @@ yarn-error.*
 
 build-*.apk
 build-*.aab
+
+# Expo skills: eas-workflows caches fetched schemas next to its script
+.claude/skills/**/.cache/

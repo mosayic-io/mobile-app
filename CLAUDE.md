@@ -38,7 +38,7 @@ These documentation files are specifically formatted for AI agents and should be
 
 ### Expo's own skills
 
-`.claude/settings.json` enables Expo's official Claude Code plugin (`expo@claude-plugins-official`) — the same file `create-expo-app` writes into new projects. Claude Code offers to install it the first time this folder is opened and trusted; it brings Expo's skills (`expo-router`, `expo-ui`, `expo-animation`, `expo-upgrade`, `eas-app-stores`, `eas-update` and more) and the Expo MCP server, which signs in to the user's Expo account with `/mcp`. When a task matches one of those skills, use it. Where a skill and this file disagree, this file wins: it knows this project (no Expo Go, the bundle id is permanent, production is not a place you run things).
+`.claude/skills/` holds Expo's official skills, copied from [expo/skills](https://github.com/expo/skills) (MIT, plugin 1.13.10, commit 7ddc1f5): `expo-overview` routes to the rest — `expo-router`, `expo-ui`, `expo-native-ui`, `expo-animation`, `expo-data-fetching`, `expo-dev-client`, `expo-upgrade`, `eas-app-stores`, `eas-update`, `eas-workflows` and more. They load on their own; nothing to install. They are copied rather than installed as Expo's Claude Code plugin on purpose: the plugin also registers the Expo MCP server and usage telemetry, and this project uses neither — so don't install the plugin or add an Expo MCP server, and don't send feedback to Expo (`submit-expo-feedback`). When a task matches a skill, use it; where a skill and this file disagree, this file wins (no Expo Go, ever; the bundle id is permanent; production is not a place you run things).
 
 ## SDK version
 
