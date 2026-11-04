@@ -19,9 +19,11 @@ type ListGroupProps = PropsWithChildren<{
 
 type ListRowProps = {
   title: string
+  /** A second, quieter line under the title. */
+  subtitle?: string
   /** The value on the right: a string in secondary text, or your own node. */
   detail?: ReactNode
-  /** Something before the title — a swatch, an icon chip. */
+  /** Something before the title — an icon chip, LEADING_SIZE wide. */
   leading?: ReactNode
   /** Shows a chevron. Defaults to true when the row is pressable. */
   chevron?: boolean
@@ -35,6 +37,9 @@ type ListRowProps = {
 
 // A row is at least this tall, whatever it holds — the iOS list row height.
 const ROW_MIN_HEIGHT = 52
+// The width a `leading` node is drawn at, so the separators line up with
+// the titles. Draw icon chips at this size.
+export const LEADING_SIZE = 30
 
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
@@ -61,7 +66,7 @@ const createStyles = (colors: Colors) =>
       marginLeft: spacing.md,
     },
     separatorWithLeading: {
-      marginLeft: spacing.md + 26 + spacing.sm + 4,
+      marginLeft: spacing.md + LEADING_SIZE + spacing.sm + 4,
     },
     row: {
       flexDirection: 'row',
@@ -76,6 +81,7 @@ const createStyles = (colors: Colors) =>
     },
     title: {
       flex: 1,
+      gap: 1,
     },
     trailing: {
       flexDirection: 'row',
@@ -133,6 +139,7 @@ export function ListRow({
   leading,
   chevron,
   onPress,
+  subtitle,
   tone = 'default',
   disabled = false,
   accessibilityLabel,
@@ -147,9 +154,16 @@ export function ListRow({
   const content = (
     <>
       {leading}
-      <Text variant="body" color={titleColor} style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
+      <View style={styles.title}>
+        <Text variant="body" color={titleColor} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text variant="caption" color="secondary" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
       <View style={styles.trailing}>
         {typeof detail === 'string' ? (
           <Text variant="body" color="secondary" numberOfLines={1}>

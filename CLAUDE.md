@@ -57,7 +57,7 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 │   │   ├── verify-email.tsx   # Waiting for the confirmation link (only when email confirmation is on)
 │   │   └── _layout.tsx        # Auth stack layout (returns to Profile once signed in)
 │   ├── (tabs)/                # Tab-based navigation — open to everyone
-│   │   ├── index.tsx          # Home screen (public; shows the design preview)
+│   │   ├── index.tsx          # Home screen (public; a generic placeholder: search, featured card, filtered list)
 │   │   ├── profile.tsx        # Profile screen (signed-out state holds the "Sign in" button)
 │   │   ├── edit-profile.tsx   # Edit profile screen (signed-in only)
 │   │   └── _layout.tsx        # Tabs layout
@@ -66,6 +66,7 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 ├── src/
 │   ├── components/            # Shared React components
 │   │   ├── ui/                # UI primitives (Button, Input, Text, Avatar, Card, ListGroup/ListRow, Segmented, NavBar)
+│   │   ├── navigation/        # TabBar — the floating glass pill passed to <Tabs tabBar={…}>
 │   │   ├── forms/             # Form components (FormInput with react-hook-form)
 │   │   └── error/             # Error boundaries (ErrorBoundary, ScreenErrorBoundary)
 │   ├── features/              # Feature-based modules
@@ -177,9 +178,9 @@ Reusable, theme-aware building blocks used across the entire application:
 - `Text` - Typography component with variants (h1 = the large title, h2, h3, body, bodySmall, caption, label, mono)
 - `Avatar` - User avatar: photo, or initials / a person glyph on an accent wash
 - `Card` - Surface container with the card radius, a hairline edge and one soft shadow; give it `onPress` and it becomes a tile that dips when pressed
-- `ListGroup` / `ListRow` - The iOS inset grouped list (Settings-style): an uppercase header, rows on one rounded surface separated by hairlines; rows take a `detail`, a `leading` swatch/icon, a chevron, a `tone` (accent / danger) and `onPress`
+- `ListGroup` / `ListRow` - The iOS inset grouped list (Settings-style): an uppercase header, rows on one rounded surface separated by hairlines; rows take a `subtitle`, a `detail`, a `leading` icon chip (`LEADING_SIZE` wide), a chevron, a `tone` (accent / danger) and `onPress`
 - `Segmented` - The iOS segmented control: a pill track with a thumb that slides to the selected option
-- `NavBar` - The glass navigation bar that fades in once a screen's large title scrolls away; screens pass it the `scrollY` shared value from `useAnimatedScrollHandler`
+- `NavBar` - The glass navigation bar that fades in once a screen's top scrolls away (title optional); screens pass it the `scrollY` shared value from `useAnimatedScrollHandler`
 
 **Usage**: Import from `@/src/components/ui`:
 ```tsx
@@ -243,7 +244,7 @@ export const lightColors = {
   border,        // hairline separators
   edge,          // the barely-there outline around a card
   primary, onPrimary,
-  accent, accentSoft,   // accentSoft = the accent at 16%: avatar washes, chips
+  accent, accentSoft,   // accent ships monochrome (the text colour) — put the brand colour here; accentSoft = a soft wash of it: avatar washes, chips
   danger, warning, success, onDanger, overlay,
   glassNav, glassTab,   // translucent fills over the blur (NavBar, tab bar)
   segmentTrack, segmentThumb,
@@ -256,8 +257,12 @@ export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 }
 // Typography scale
 export const fontSize = { xs: 12, sm: 14, base: 16, lg: 18, xl: 24, '2xl': 28, '3xl': 32 }
 export const fontWeight = { normal: '400', medium: '500', semibold: '600', bold: '700' }
+// The typeface: Plus Jakarta Sans, one font file per weight, loaded in app/_layout.tsx.
+// Set a weight with `...typeface.semibold` (a fontFamily), never fontWeight — Android
+// ignores fontWeight on a custom font.
+export const typeface = { normal, medium, semibold, bold }
 
-// Typefaces — the system font everywhere, plus a mono face for token values / code
+// A mono face for version numbers / code
 export const fontFamily = { mono }
 
 // Border radius scale — `card` for every grouping surface, `control` for

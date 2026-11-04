@@ -8,14 +8,14 @@ import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native
 import { Avatar, ListGroup, ListRow, NavBar, Text } from '@/src/components/ui'
 import { useColors } from '@/src/hooks/useColors'
 import { useTabBarPadding } from '@/src/hooks/useTabBarPadding'
-import { spacing, borderRadius, type Colors, type ThemeMode } from '@/src/lib/theme'
+import { spacing, type Colors, type ThemeMode } from '@/src/lib/theme'
 import { useAuthStore } from '@/src/features/auth'
 import { useUserProfile } from '@/src/features/profile'
 import { backendConfigured } from '@/src/lib/env'
 import { useThemeStore } from '@/src/stores/themeStore'
 import { ScreenErrorBoundary } from '@/src/components/error'
 
-// Profile is a settings screen: a large title, the person, then grouped
+// Profile is a settings screen: the person, then grouped
 // lists. Signed out it still stands — the rows read "Not set" and the one
 // action is Sign in. The theme row cycles system → light → dark on tap.
 
@@ -58,14 +58,6 @@ const createStyles = (colors: Colors) =>
     centred: {
       textAlign: 'center',
     },
-    swatch: {
-      width: 22,
-      height: 22,
-      borderRadius: borderRadius.full,
-      backgroundColor: colors.accent,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.edge,
-    },
   })
 
 function ProfileScreen() {
@@ -81,7 +73,7 @@ function ProfileScreen() {
 
   const scrollY = useSharedValue(0)
   const onScroll = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y
+    scrollY.set(event.contentOffset.y)
   })
 
   const handleSignIn = useCallback(() => {
@@ -119,10 +111,6 @@ function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         accessibilityLabel="Profile screen"
       >
-        <Text variant="h1" accessibilityRole="header">
-          Profile
-        </Text>
-
         <View style={styles.person}>
           <Avatar source={profile?.photo_url} name={displayName} size="xl" />
           <View style={styles.personText}>
@@ -174,20 +162,10 @@ function ProfileScreen() {
             accessibilityLabel={`Theme: ${MODE_LABEL[mode]}`}
             accessibilityHint={`Double tap to switch to ${MODE_LABEL[NEXT_MODE[mode]].toLowerCase()}`}
           />
-          <ListRow
-            title="Accent"
-            detail={
-              <>
-                <View style={styles.swatch} />
-                <Text variant="mono">{colors.accent.toUpperCase()}</Text>
-              </>
-            }
-          />
         </ListGroup>
 
         <ListGroup header="About">
           <ListRow title="Version" detail={version} />
-          <ListRow title="Design system" detail={<Text variant="mono">theme.ts</Text>} />
         </ListGroup>
 
         {user && (
@@ -204,7 +182,7 @@ function ProfileScreen() {
         )}
       </Animated.ScrollView>
 
-      <NavBar title="Profile" scrollY={scrollY} />
+      <NavBar scrollY={scrollY} />
     </View>
   )
 }

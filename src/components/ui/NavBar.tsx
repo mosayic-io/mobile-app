@@ -14,7 +14,8 @@ import { Text } from './Text'
 // large title in the content and hand this their scroll position.
 
 type NavBarProps = {
-  title: string
+  /** Centred in the bar. Leave it out for a plain glass strip. */
+  title?: string
   /** The screen's vertical scroll offset, from `useAnimatedScrollHandler`. */
   scrollY: SharedValue<number>
   /** How far the content scrolls before the bar shows. */
@@ -66,14 +67,15 @@ export function NavBar({ title, scrollY, threshold = 44 }: NavBarProps) {
       <BlurView
         intensity={40}
         tint={isDark ? 'dark' : 'light'}
-        experimentalBlurMethod="dimezisBlurView"
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.fill} />
       <View style={styles.title}>
-        <Text variant="body" weight="semibold" numberOfLines={1}>
-          {title}
-        </Text>
+        {title ? (
+          <Text variant="body" weight="semibold" numberOfLines={1}>
+            {title}
+          </Text>
+        ) : null}
       </View>
     </Animated.View>
   )

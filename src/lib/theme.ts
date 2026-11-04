@@ -1,12 +1,12 @@
 import { Platform, type ColorSchemeName } from 'react-native'
 
-// The palette follows the iOS system palette: a grouped-background grey with
-// white surfaces in light mode, pure black with #1C1C1E surfaces in dark, and
+// The palette follows the iOS system palette: a white background with soft
+// warm-grey surfaces in light mode, pure black with #1C1C1E surfaces in dark, and
 // secondary / tertiary text as translucent labels rather than greys — so they
 // read the same over any surface.
 export const lightColors = {
-  background: '#F2F2F7',
-  surface: '#FFFFFF',
+  background: '#FFFFFF',
+  surface: '#F5F4F1',
   text: '#0B0B12',
   secondary: 'rgba(60, 60, 67, 0.6)',
   tertiary: 'rgba(60, 60, 67, 0.3)',
@@ -16,19 +16,21 @@ export const lightColors = {
   edge: 'rgba(0, 0, 0, 0.04)',
   primary: '#0B0B12',
   onPrimary: '#FFFFFF',
-  accent: '#5A5CF0',
-  // The accent at 16% — avatar backgrounds, icon chips, selected states.
-  accentSoft: 'rgba(90, 92, 240, 0.16)',
+  // The accent ships monochrome — the text colour — so the app reads as
+  // nobody's brand until it has one. Put the brand colour here.
+  accent: '#0B0B12',
+  // A soft wash of the accent — avatar backgrounds, icon chips, selected states.
+  accentSoft: 'rgba(11, 11, 18, 0.07)',
   danger: '#FF3B30',
   warning: '#FF9500',
   success: '#34C759',
   onDanger: '#FFFFFF',
   overlay: 'rgba(0, 0, 0, 0.4)',
   // Glass: the translucent fills over a blur — the nav bar and the tab bar.
-  glassNav: 'rgba(242, 242, 247, 0.72)',
-  glassTab: 'rgba(255, 255, 255, 0.68)',
+  glassNav: 'rgba(255, 255, 255, 0.8)',
+  glassTab: 'rgba(255, 255, 255, 0.82)',
   // Segmented control: the track and the sliding thumb.
-  segmentTrack: 'rgba(118, 118, 128, 0.12)',
+  segmentTrack: 'rgba(120, 110, 90, 0.11)',
   segmentThumb: '#FFFFFF',
 } as const
 
@@ -42,8 +44,8 @@ export const darkColors = {
   edge: 'rgba(255, 255, 255, 0.08)',
   primary: '#FFFFFF',
   onPrimary: '#000000',
-  accent: '#8285F4',
-  accentSoft: 'rgba(130, 133, 244, 0.16)',
+  accent: '#FFFFFF',
+  accentSoft: 'rgba(255, 255, 255, 0.14)',
   danger: '#FF453A',
   warning: '#FF9F0A',
   success: '#30D158',
@@ -103,7 +105,20 @@ export const fontWeight = {
   bold: '700' as const,
 }
 
-// The system font everywhere; a monospace face for token values and code.
+// One typeface everywhere — Plus Jakarta Sans, bundled with
+// @expo-google-fonts and loaded in app/_layout.tsx before the splash screen
+// goes. Each weight is its own font file, so a weight is set by family
+// (`...typeface.semibold`), never by fontWeight: Android ignores fontWeight
+// on a custom font. To change the typeface, swap the four names here and
+// the imports in app/_layout.tsx.
+export const typeface = {
+  normal: { fontFamily: 'PlusJakartaSans_400Regular' },
+  medium: { fontFamily: 'PlusJakartaSans_500Medium' },
+  semibold: { fontFamily: 'PlusJakartaSans_600SemiBold' },
+  bold: { fontFamily: 'PlusJakartaSans_700Bold' },
+} as const
+
+// A monospace face for version numbers and code.
 export const fontFamily = {
   mono: Platform.select({
     ios: 'Menlo',

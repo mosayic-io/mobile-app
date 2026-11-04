@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated'
 
 import { useColors } from '@/src/hooks/useColors'
-import { spacing, fontSize, fontWeight, borderRadius, type Colors } from '@/src/lib/theme'
+import { spacing, fontSize, typeface, borderRadius, type Colors } from '@/src/lib/theme'
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md' | 'lg'
@@ -72,7 +72,7 @@ const createStyles = (colors: Colors) => {
       },
       fullWidth: { width: '100%' },
       disabled: { opacity: 0.6 },
-      textBase: { fontWeight: fontWeight.semibold },
+      textBase: { ...typeface.semibold },
       loader: { marginRight: spacing.sm },
       icon: { marginRight: spacing.sm },
     }),

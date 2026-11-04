@@ -11,6 +11,13 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import { QueryClientProvider } from '@tanstack/react-query'
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaInsetsContext, SafeAreaProvider } from 'react-native-safe-area-context'
 
@@ -110,6 +117,14 @@ function RootLayoutNav() {
   const setupAuthListener = useAuthStore((state) => state.setupAuthListener)
   const ensureToken = useNotificationStore((state) => state.ensureToken)
   const themeHydrated = useThemeHydration()
+  // The typeface (src/lib/theme.ts → typeface). A font that fails to load
+  // falls back to the system font rather than holding the app hostage.
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+  })
 
   // Set up auth listener on mount
   useEffect(() => {
@@ -145,9 +160,10 @@ function RootLayoutNav() {
     }
   }, [ensureToken, session?.user?.id])
 
-  const isReady = isInitialized && themeHydrated
+  const isReady = isInitialized && themeHydrated && (fontsLoaded || fontError !== null)
 
-  // Hold the splash screen until the session and persisted theme have loaded,
+  // Hold the splash screen until the session, the persisted theme and the
+  // fonts have loaded,
   // so the first frame is the right screen in the right theme.
   useEffect(() => {
     if (isReady) {

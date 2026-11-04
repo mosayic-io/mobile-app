@@ -4,7 +4,7 @@ import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 
 import { useColors } from '@/src/hooks/useColors'
-import { fontSize, fontWeight, type Colors } from '@/src/lib/theme'
+import { fontSize, typeface, type Colors } from '@/src/lib/theme'
 
 type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
@@ -44,7 +44,7 @@ const createStyles = (colors: Colors, size: AvatarSize) =>
     },
     text: {
       fontSize: sizes[size].text,
-      fontWeight: fontWeight.semibold,
+      ...typeface.semibold,
       color: colors.accent,
     },
   })

@@ -8,7 +8,7 @@ import {
 } from 'react-native'
 
 import { useColors } from '@/src/hooks/useColors'
-import { fontFamily, fontSize, fontWeight, type Colors } from '@/src/lib/theme'
+import { fontFamily, fontSize, typeface, type Colors } from '@/src/lib/theme'
 
 type TextVariant = 'h1' | 'h2' | 'h3' | 'body' | 'bodySmall' | 'caption' | 'label' | 'mono'
 type TextColor = 'primary' | 'secondary' | 'tertiary' | 'accent' | 'danger' | 'success'
@@ -16,7 +16,7 @@ type TextColor = 'primary' | 'secondary' | 'tertiary' | 'accent' | 'danger' | 's
 type TextProps = RNTextProps & {
   variant?: TextVariant
   color?: TextColor
-  weight?: keyof typeof fontWeight
+  weight?: keyof typeof typeface
   style?: StyleProp<TextStyle>
 }
 
@@ -27,48 +27,45 @@ const createStyles = (colors: Colors) =>
       // The large title at the top of a screen.
       fontSize: fontSize['3xl'],
       lineHeight: fontSize['3xl'] + 7,
-      fontWeight: fontWeight.bold,
-      letterSpacing: 0.2,
+      ...typeface.bold,
+      letterSpacing: -0.6,
       color: colors.text,
     },
     h2: {
       fontSize: fontSize['2xl'],
-      fontWeight: fontWeight.bold,
+      ...typeface.bold,
       color: colors.text,
     },
     h3: {
       fontSize: fontSize.xl,
-      fontWeight: fontWeight.semibold,
-      letterSpacing: -0.26,
+      ...typeface.semibold,
+      letterSpacing: -0.2,
       color: colors.text,
     },
     body: {
       fontSize: fontSize.base,
-      fontWeight: fontWeight.normal,
-      letterSpacing: -0.3,
+      ...typeface.normal,
       color: colors.text,
     },
     bodySmall: {
       fontSize: fontSize.sm,
-      fontWeight: fontWeight.normal,
+      ...typeface.normal,
       color: colors.text,
     },
     caption: {
       fontSize: fontSize.xs,
-      fontWeight: fontWeight.normal,
+      ...typeface.normal,
       color: colors.secondary,
     },
     label: {
       fontSize: fontSize.sm,
-      fontWeight: fontWeight.medium,
-      letterSpacing: -0.1,
+      ...typeface.medium,
       color: colors.text,
     },
     // Token values, versions, file names — anything that's really code.
     mono: {
       fontFamily: fontFamily.mono,
       fontSize: fontSize.xs,
-      fontWeight: fontWeight.normal,
       color: colors.secondary,
     },
     // Colors
@@ -92,16 +89,16 @@ const createStyles = (colors: Colors) =>
     },
     // Weights
     weightNormal: {
-      fontWeight: fontWeight.normal,
+      ...typeface.normal,
     },
     weightMedium: {
-      fontWeight: fontWeight.medium,
+      ...typeface.medium,
     },
     weightSemibold: {
-      fontWeight: fontWeight.semibold,
+      ...typeface.semibold,
     },
     weightBold: {
-      fontWeight: fontWeight.bold,
+      ...typeface.bold,
     },
   })
 

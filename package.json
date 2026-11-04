@@ -14,6 +14,7 @@
     "build:prod": "eas build --profile production"
   },
   "dependencies": {
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/ui": "~57.0.25",
     "@expo/vector-icons": "^15.0.3",
     "@hookform/resolvers": "^5.2.2",

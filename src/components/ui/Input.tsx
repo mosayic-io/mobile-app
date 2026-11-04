@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 
 import { useColors } from '@/src/hooks/useColors'
-import { spacing, fontSize, fontWeight, borderRadius, type Colors } from '@/src/lib/theme'
+import { spacing, fontSize, typeface, borderRadius, type Colors } from '@/src/lib/theme'
 
 type InputProps = TextInputProps & {
   label?: string
@@ -31,7 +31,7 @@ const createStyles = (colors: Colors) =>
     },
     label: {
       fontSize: fontSize.sm,
-      fontWeight: fontWeight.medium,
+      ...typeface.medium,
       color: colors.text,
       marginBottom: spacing.xs,
     },
