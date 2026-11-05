@@ -8,6 +8,10 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 It runs in a **development build** (`expo-dev-client`) — Expo Go is NOT supported and must never be suggested: the app pre-installs native modules, and the Expo Go app in the stores lags behind the SDK.
 
+## The product documents (`docs/`)
+
+When this folder has a `docs/PRD.md`, it is the app's product requirements: **what** the app is, who it's for and what version one does. `docs/BUILD_PLAN.md` is the build broken into milestones (`- [ ]` / `- [x]`, in order; a milestone tagged "(needs development build)" uses something the web preview can't show). Read both before building a feature, and stay consistent with them: the PRD says WHAT, this file says HOW, and where they disagree about what to build, the PRD wins. Don't edit the PRD unless asked. When you finish a milestone, tick it (`- [ ]` → `- [x]`) and change nothing else in the plan: Kealy Studio reads the ticks. `docs/BUILD_STEPS/` holds the instructions for a build step when one was started from Kealy Studio; `docs/design/` (gitignored) holds a downloaded design, if there is one.
+
 ## Production is not a place you run things
 
 The app has a development backend (the Supabase running in Docker from the API repo next door) and a production one (the hosted Supabase project). You may READ production in a limited sense — check whether an environment variable or secret exists, look at a build's status — and SET a secret when the user explicitly asks. You must NEVER run scripts, one-off commands or SQL against the production database, and never point a local run at it with production keys in `.env`. Schema changes reach production only as migration files in the API repo, shipped by a release. If a task seems to need production data, stop and ask.
@@ -237,8 +241,8 @@ For components that are only used within a single screen, define them within the
 ### Theme Structure (`src/lib/theme.ts`)
 
 ```tsx
-// Colors (light and dark mode) — the iOS system palette: grouped-background
-// grey with white surfaces (light), black with #1C1C1E surfaces (dark);
+// Colors (light and dark mode) — the iOS system palette: a white background
+// with warm-grey #F5F4F1 surfaces (light), black with #1C1C1E surfaces (dark);
 // secondary / tertiary / border are translucent so they sit on any surface.
 export const lightColors = {
   background, surface, text, secondary, tertiary,
@@ -354,6 +358,17 @@ The following are **NOT ALLOWED** without explicit user approval:
   - Proper dependency arrays in useEffect
   - Memoization when appropriate (useMemo, useCallback)
   - Error boundaries for better error handling
+
+### Adding a screen
+
+1. A tab goes in `app/(tabs)/` and is listed in `app/(tabs)/_layout.tsx` (Profile stays last); anything else goes where it belongs in `app/`.
+2. Wrap the screen in `ScreenErrorBoundary`, draw its own `NavBar` (the stock header is off), and add `useTabBarPadding()` to a scrolling screen's bottom padding: the tab bar floats over the content.
+3. Build it from `src/components/ui` and the theme's tokens (`createStyles(colors)` + `useMemo`). Screen-only pieces stay in the screen file.
+4. Give it its loading, empty and error states, and keep it working on the web build (see "Native code means a rebuild" and `.web.ts` twins like `src/lib/notifications.web.ts`).
+
+### Applying a design
+
+A design (a Claude Design hand-off, a mock-up, a screenshot) is translated into this template, never pasted in: every value it uses goes into `src/lib/theme.ts`, keeping that file's exported names and shape, and `src/components/ui` is restyled to match while keeping its props. CSS px / rem become plain numbers, CSS shadows become the theme's `boxShadow` strings, and web fonts become `@expo-google-fonts` packages mapped in `typeface`. The brand colour goes in `accent` / `accentSoft`. A design that only shows light mode still gets a dark palette in the same character.
 
 ### Navigation & Routing
 
