@@ -38,17 +38,14 @@ const createStyles = (colors: Colors) =>
       backgroundColor: colors.segmentTrack,
     },
     thumb: {
+      pointerEvents: 'none',
       position: 'absolute',
       top: TRACK_PADDING,
       bottom: TRACK_PADDING,
       left: TRACK_PADDING,
       borderRadius: borderRadius.full,
       backgroundColor: colors.segmentThumb,
-      shadowColor: '#000',
-      shadowOpacity: 0.12,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 2,
+      boxShadow: '0 3px 16px rgba(0, 0, 0, 0.12)',
     },
     segment: {
       flex: 1,
@@ -102,7 +99,7 @@ export function Segmented<T extends string>({
       accessibilityLabel={accessibilityLabel}
     >
       {segmentWidth > 0 && (
-        <Animated.View style={[styles.thumb, { width: segmentWidth }, thumbStyle]} pointerEvents="none" />
+        <Animated.View style={[styles.thumb, { width: segmentWidth }, thumbStyle]} />
       )}
       {options.map((option) => {
         const selected = option.value === value

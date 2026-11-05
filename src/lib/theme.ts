@@ -139,31 +139,23 @@ export const borderRadius = {
 } as const
 
 // One soft elevation for cards. Deeper in the dark, where a light shadow
-// would vanish against black.
+// would vanish against black. boxShadow is CSS syntax and draws the same
+// shadow on iOS, Android and web (the old shadowColor / shadowOpacity /
+// shadowRadius / elevation props are deprecated).
 type Shadow = {
-  shadowColor: string
-  shadowOpacity: number
-  shadowRadius: number
-  shadowOffset: { width: number; height: number }
-  elevation: number
+  boxShadow: string
 }
 
 export type Shadows = {
   card: Shadow
 }
 
-const cardShadow = {
-  shadowRadius: 30,
-  shadowOffset: { width: 0, height: 10 },
-  elevation: 3,
-}
-
 export const shadows: { light: Shadows; dark: Shadows } = {
   light: {
-    card: { ...cardShadow, shadowColor: '#14142B', shadowOpacity: 0.07 },
+    card: { boxShadow: '0 10px 60px rgba(20, 20, 43, 0.07)' },
   },
   dark: {
-    card: { ...cardShadow, shadowColor: '#000000', shadowOpacity: 0.55 },
+    card: { boxShadow: '0 10px 60px rgba(0, 0, 0, 0.55)' },
   },
 }
 

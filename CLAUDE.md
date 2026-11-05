@@ -38,7 +38,7 @@ These documentation files are specifically formatted for AI agents and should be
 
 ### Expo's own skills
 
-`.claude/skills/` holds Expo's official skills, copied from [expo/skills](https://github.com/expo/skills) (MIT, plugin 1.13.10, commit 7ddc1f5): `expo-overview` routes to the rest — `expo-router`, `expo-ui`, `expo-native-ui`, `expo-animation`, `expo-data-fetching`, `expo-dev-client`, `expo-upgrade`, `eas-app-stores`, `eas-update`, `eas-workflows` and more. They load on their own; nothing to install. They are copied rather than installed as Expo's Claude Code plugin on purpose: the plugin also registers the Expo MCP server and usage telemetry, and this project uses neither — so don't install the plugin or add an Expo MCP server, and don't send feedback to Expo (`submit-expo-feedback`). When a task matches a skill, use it; where a skill and this file disagree, this file wins (no Expo Go, ever; the bundle id is permanent; production is not a place you run things).
+`.claude/skills/` holds Expo's official skills, copied from [expo/skills](https://github.com/expo/skills) (MIT, plugin 1.14.3, commit a9e5bd3): `expo-overview` routes to the rest — `expo-router`, `expo-ui`, `expo-native-ui`, `expo-animation`, `expo-data-fetching`, `expo-dev-client`, `expo-upgrade`, `eas-app-stores`, `eas-update`, `eas-workflows` and more. They load on their own; nothing to install. They are copied rather than installed as Expo's Claude Code plugin on purpose: the plugin also registers the Expo MCP server and usage telemetry, and this project uses neither — so don't install the plugin or add an Expo MCP server, and don't send feedback to Expo (`submit-expo-feedback`). When a task matches a skill, use it; where a skill and this file disagree, this file wins (no Expo Go, ever; the bundle id is permanent; production is not a place you run things).
 
 ## SDK version
 
@@ -78,6 +78,7 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 │   │   ├── embed.ts           # Web build inside a phone-shaped iframe: `?insets=top,bottom` → safe-area insets; posts the colour scheme to the parent
 │   │   ├── api.ts             # deleteAuthUser — TWO ways, `ACCOUNT_DELETION` picks: the delete_own_account RPC (default; store-ready with no server) or DELETE /auth/users/me on the Python API (the lesson's endpoint); + apiFetch for the Python API
 │   │   ├── notifications.ts   # Push notification utilities
+│   │   ├── notifications.web.ts # Its web twin: no-ops, so expo-notifications never loads in a browser — keep the exports in step
 │   │   ├── supabase.ts        # Supabase client configuration
 │   │   ├── queryClient.ts     # TanStack Query configuration
 │   │   ├── theme.ts           # Theme colors, spacing, typography, radii, shadows
@@ -337,7 +338,7 @@ The following are **NOT ALLOWED** without explicit user approval:
 - `flex: 1`, `flexDirection`, `alignItems`, `justifyContent` - layout properties
 - `width: '100%'`, `height: '100%'` - relative sizing
 - `position`, `top`, `left`, `right`, `bottom` - positioning
-- Platform-specific shadow values (shadowColor, shadowOffset, etc.)
+- Shadows as one `boxShadow` string (`'0 8px 48px rgba(0, 0, 0, 0.1)'`), which draws the same on iOS, Android and web — never the deprecated `shadowColor` / `shadowOpacity` / `shadowRadius` / `shadowOffset` / `elevation` props. Likewise `pointerEvents` goes in the style, not as a prop.
 - `opacity` values for disabled states
 
 ## Development Guidelines

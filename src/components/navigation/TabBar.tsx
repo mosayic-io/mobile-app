@@ -21,6 +21,7 @@ const INSET = 6
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
     wrap: {
+      pointerEvents: 'box-none',
       position: 'absolute',
       left: 0,
       right: 0,
@@ -37,11 +38,7 @@ const createStyles = (colors: Colors) =>
     },
     shadow: {
       borderRadius: borderRadius.full,
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 24,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 8,
+      boxShadow: '0 8px 48px rgba(0, 0, 0, 0.1)',
     },
     item: {
       width: ITEM_WIDTH,
@@ -62,7 +59,7 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
   const styles = useMemo(() => createStyles(colors), [colors])
 
   return (
-    <View style={[styles.wrap, { bottom: offset }]} pointerEvents="box-none">
+    <View style={[styles.wrap, { bottom: offset }]}>
       <View style={styles.shadow}>
         <View style={styles.bar} accessibilityRole="tablist">
           <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />

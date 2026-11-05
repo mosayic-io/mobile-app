@@ -27,6 +27,7 @@ const BAR_HEIGHT = 44
 const createStyles = (colors: Colors) =>
   StyleSheet.create({
     bar: {
+      pointerEvents: 'none',
       position: 'absolute',
       top: 0,
       left: 0,
@@ -63,7 +64,7 @@ export function NavBar({ title, scrollY, threshold = 44 }: NavBarProps) {
   }))
 
   return (
-    <Animated.View style={[styles.bar, { paddingTop: insets.top }, fade]} pointerEvents="none">
+    <Animated.View style={[styles.bar, { paddingTop: insets.top }, fade]}>
       <BlurView
         intensity={40}
         tint={isDark ? 'dark' : 'light'}
