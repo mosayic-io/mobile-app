@@ -2,7 +2,7 @@
 
 These are Expo's official Claude Code skills, copied from
 [expo/skills](https://github.com/expo/skills) — `plugins/expo/skills` at
-commit `7ddc1f5` (plugin 1.13.10). MIT, see `LICENSE`. They are copied rather
+commit `a9e5bd3` (plugin 1.14.3). MIT, see `LICENSE`. They are copied rather
 than installed as the `expo@claude-plugins-official` plugin on purpose: the
 plugin also registers the Expo MCP server and a usage-telemetry hook, and this
 project uses neither.
