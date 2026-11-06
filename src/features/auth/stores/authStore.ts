@@ -202,15 +202,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             })
           }
 
-          const profileUpdate: { id: string; display_name?: string | null; photo_url?: string | null; email?: string | null } =
-            { id: userId }
+          // An UPDATE, never an upsert: the row already exists (the
+          // on_auth_user_created trigger makes it at sign-up), and signed-in
+          // users have no INSERT on public.users, which an upsert needs even
+          // when the row is there ("permission denied for table users").
+          const profileUpdate: { display_name?: string | null; photo_url?: string | null; email?: string | null } = {}
 
           if (normalizedName) profileUpdate.display_name = normalizedName
           if (profilePhoto) profileUpdate.photo_url = profilePhoto
           if (profileEmail) profileUpdate.email = profileEmail
 
-          if (Object.keys(profileUpdate).length > 1) {
-            await supabase.from('users').upsert(profileUpdate, { onConflict: 'id' })
+          if (Object.keys(profileUpdate).length > 0) {
+            const { error: profileWriteError } = await supabase.from('users').update(profileUpdate).eq('id', userId)
+            if (profileWriteError) throw profileWriteError
           }
         } catch (profileError) {
           console.warn('Failed to update Google profile details:', profileError)
