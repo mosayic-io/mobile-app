@@ -47,3 +47,6 @@ build-*.aab
 
 # Expo skills: eas-workflows caches fetched schemas next to its script
 .claude/skills/**/.cache/
+
+# A design downloaded for the build (CLAUDE.md → The product documents)
+docs/design/
