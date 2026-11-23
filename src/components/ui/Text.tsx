@@ -26,14 +26,15 @@ const createStyles = (colors: Colors) =>
     h1: {
       // The large title at the top of a screen.
       fontSize: fontSize['3xl'],
-      lineHeight: fontSize['3xl'] + 7,
-      ...typeface.bold,
+      lineHeight: fontSize['3xl'] + 6,
+      ...typeface.display,
       letterSpacing: -0.6,
       color: colors.text,
     },
     h2: {
       fontSize: fontSize['2xl'],
-      ...typeface.bold,
+      ...typeface.display,
+      letterSpacing: -0.3,
       color: colors.text,
     },
     h3: {
@@ -115,6 +116,8 @@ export function Text({
 
   return (
     <RNText
+      // Titles are headings to VoiceOver / TalkBack, so the rotor can jump to them.
+      accessibilityRole={variant === 'h1' || variant === 'h2' ? 'header' : undefined}
       style={[
         styles[variant],
         color && styles[`color${color.charAt(0).toUpperCase()}${color.slice(1)}` as keyof typeof styles],

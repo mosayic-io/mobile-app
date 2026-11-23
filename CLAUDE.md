@@ -61,7 +61,7 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 │   │   ├── verify-email.tsx   # Waiting for the confirmation link (only when email confirmation is on)
 │   │   └── _layout.tsx        # Auth stack layout (returns to Profile once signed in)
 │   ├── (tabs)/                # Tab-based navigation — open to everyone
-│   │   ├── index.tsx          # Home screen (public; a generic placeholder: search, featured card, filtered list)
+│   │   ├── index.tsx          # Home screen (public; a generic placeholder: a mosaic that builds itself, over a centred intro)
 │   │   ├── profile.tsx        # Profile screen (signed-out state holds the "Sign in" button)
 │   │   ├── edit-profile.tsx   # Edit profile screen (signed-in only)
 │   │   └── _layout.tsx        # Tabs layout
@@ -75,7 +75,7 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 │   │   └── error/             # Error boundaries (ErrorBoundary, ScreenErrorBoundary)
 │   ├── features/              # Feature-based modules
 │   │   ├── auth/              # Authentication: the auth store + providers/
-│   │   │   ├── providers/     # Sign-in adapters (google, apple, password) → one credential → Supabase; signIn({ provider }) resolves 'signed-in' | 'cancelled'
+│   │   │   ├── providers/     # Sign-in adapters (google, apple, password) → one credential → Supabase; signIn({ provider }) resolves 'signed-in' | 'cancelled'; google.web.ts makes the Google button explain itself in the web preview (the library has no free web build)
 │   │   │   └── pendingConfirmation.ts # An email sign-up awaiting its link (confirmation on): in-memory password, tryComplete → 'signed-in' | 'not-yet' | 'lost', resend, abandon
 │   │   ├── notifications/     # Push registration: startPushSync() (root layout) keeps this device's token in step with the session; signOut awaits unregisterPushBeforeSignOut()
 │   │   └── profile/           # Owns the public.users row: useProfile(user) (profile, displayName, rename), seedProfileFromProvider (UPDATE-only)
@@ -90,6 +90,7 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 │   │   ├── dialog.ts          # Its phone adapter (Alert) — import feedback.ts, not this
 │   │   ├── dialog.web.ts      # Its web twin: window.alert / window.confirm, since Alert does nothing in a browser — keep the exports in step
 │   │   ├── supabase.ts        # Supabase client configuration
+│   │   ├── supabaseFetch.ts   # The client's fetch: auth calls get a 15 s limit and a plain message instead of hanging (a Claude Code hint on web — the preview — and "check your internet connection" on phones); queries and uploads untouched
 │   │   ├── queryClient.ts     # TanStack Query configuration
 │   │   ├── theme.ts           # Theme colors, spacing, typography, radii, shadows
 │   │   └── validations/       # Zod validation schemas
@@ -273,6 +274,7 @@ export const lightColors = {
   danger, warning, success, onDanger, overlay,
   glassNav, glassTab,   // translucent fills over the blur (NavBar, tab bar)
   segmentTrack, segmentThumb,
+  mosaic, onMosaic, mosaicSheen,   // decoration only: four hues + glyph + sheen for the home mosaic and Profile's icon chips
 }
 export const darkColors = { ... }
 
@@ -280,12 +282,13 @@ export const darkColors = { ... }
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 }
 
 // Typography scale
-export const fontSize = { xs: 12, sm: 14, base: 16, lg: 18, xl: 24, '2xl': 28, '3xl': 32 }
+export const fontSize = { xs: 12, sm: 14, base: 17, lg: 18, xl: 24, '2xl': 28, '3xl': 32, '4xl': 40 }   // 4xl: display moments only
 export const fontWeight = { normal: '400', medium: '500', semibold: '600', bold: '700' }
-// The typeface: Plus Jakarta Sans, one font file per weight, loaded in app/_layout.tsx.
+// The typefaces: Plus Jakarta Sans for text and controls, Bricolage Grotesque (`display`)
+// for titles — Text h1 / h2. One font file per weight, loaded in app/_layout.tsx.
 // Set a weight with `...typeface.semibold` (a fontFamily), never fontWeight — Android
 // ignores fontWeight on a custom font.
-export const typeface = { normal, medium, semibold, bold }
+export const typeface = { normal, medium, semibold, bold, display }
 
 // A mono face for version numbers / code
 export const fontFamily = { mono }
@@ -294,8 +297,9 @@ export const fontFamily = { mono }
 // buttons and inputs, `sm` / `md` for small things, `full` for pills and circles
 export const borderRadius = { sm: 8, md: 12, control: 14, card: 26, full: 9999 }
 
-// Shadows — one soft card elevation, deeper in dark mode; read via useShadows()
-export const shadows = { light: { card }, dark: { card } }
+// Shadows — a soft card elevation and a tighter one for small raised tiles,
+// deeper in dark mode; read via useShadows()
+export const shadows = { light: { card, tile }, dark: { card, tile } }
 ```
 
 ### Accessing Theme Colors

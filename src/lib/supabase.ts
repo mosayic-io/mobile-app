@@ -5,6 +5,7 @@ import 'react-native-url-polyfill/auto'
 
 import { backendConfigured, readEnv } from '@/src/lib/env'
 import type { Database } from '@/src/types/database'
+import { createSupabaseFetch } from '@/src/lib/supabaseFetch'
 
 // Read optionally: importing this module must never throw. A missing or
 // placeholder value only surfaces when the client is first used (see env.ts).
@@ -33,6 +34,9 @@ function getSupabase(): SupabaseClientType {
         persistSession: true,
         detectSessionInUrl: false,
       },
+      // Auth calls fail with a plain message instead of hanging when
+      // Supabase can't be reached (see supabaseFetch.ts).
+      global: { fetch: createSupabaseFetch() },
     })
 
     // Register AppState listener only once, after client is created

@@ -11,6 +11,7 @@ import {
   PlusJakartaSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans'
+import { BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaInsetsContext, SafeAreaProvider } from 'react-native-safe-area-context'
 
@@ -115,6 +116,7 @@ function RootLayoutNav() {
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
+    BricolageGrotesque_700Bold,
   })
 
   // Set up auth listener on mount

@@ -8,7 +8,9 @@ export const lightColors = {
   background: '#FFFFFF',
   surface: '#F5F4F1',
   text: '#0B0B12',
-  secondary: 'rgba(60, 60, 67, 0.6)',
+  // 0.78, not iOS's 0.6: that blends to #8A8A8E, 3.4:1 on white, below the
+  // 4.5:1 that body-size text needs. This is 5.6:1 on white, 5.3:1 on surface.
+  secondary: 'rgba(60, 60, 67, 0.78)',
   tertiary: 'rgba(60, 60, 67, 0.3)',
   // Hairline separators between rows; `edge` is the barely-there outline
   // around a card.
@@ -32,6 +34,13 @@ export const lightColors = {
   // Segmented control: the track and the sliding thumb.
   segmentTrack: 'rgba(120, 110, 90, 0.11)',
   segmentThumb: '#FFFFFF',
+  // Decoration only — the home mosaic's tiles and Profile's icon chips
+  // (indigo, amber, teal, pink). Not for text, controls or status: those use
+  // the tokens above.
+  mosaic: ['#5B5BD6', '#F5A524', '#12A594', '#E54887'],
+  // The glyph on a mosaic tile, and the light across its top (start → end).
+  onMosaic: '#FFFFFF',
+  mosaicSheen: ['rgba(255, 255, 255, 0.32)', 'rgba(255, 255, 255, 0)'],
 } as const
 
 export const darkColors = {
@@ -55,6 +64,9 @@ export const darkColors = {
   glassTab: 'rgba(28, 28, 30, 0.66)',
   segmentTrack: 'rgba(118, 118, 128, 0.24)',
   segmentThumb: '#636366',
+  mosaic: ['#7C7CF0', '#FFB940', '#2CC4AE', '#F2689C'],
+  onMosaic: '#FFFFFF',
+  mosaicSheen: ['rgba(255, 255, 255, 0.22)', 'rgba(255, 255, 255, 0)'],
 } as const
 
 export type Colors = {
@@ -78,6 +90,9 @@ export type Colors = {
   glassTab: string
   segmentTrack: string
   segmentThumb: string
+  mosaic: readonly [string, string, string, string]
+  onMosaic: string
+  mosaicSheen: readonly [string, string]
 }
 
 export const spacing = {
@@ -91,11 +106,13 @@ export const spacing = {
 export const fontSize = {
   xs: 12,
   sm: 14,
-  base: 16,
+  base: 17,
   lg: 18,
   xl: 24,
   '2xl': 28,
   '3xl': 32,
+  // Display moments only, like the home screen's headline.
+  '4xl': 40,
 } as const
 
 export const fontWeight = {
@@ -105,17 +122,20 @@ export const fontWeight = {
   bold: '700' as const,
 }
 
-// One typeface everywhere — Plus Jakarta Sans, bundled with
+// Plus Jakarta Sans for text and controls, bundled with
 // @expo-google-fonts and loaded in app/_layout.tsx before the splash screen
 // goes. Each weight is its own font file, so a weight is set by family
 // (`...typeface.semibold`), never by fontWeight: Android ignores fontWeight
-// on a custom font. To change the typeface, swap the four names here and
-// the imports in app/_layout.tsx.
+// on a custom font. To change a typeface, swap its names here and the
+// imports in app/_layout.tsx.
 export const typeface = {
   normal: { fontFamily: 'PlusJakartaSans_400Regular' },
   medium: { fontFamily: 'PlusJakartaSans_500Medium' },
   semibold: { fontFamily: 'PlusJakartaSans_600SemiBold' },
   bold: { fontFamily: 'PlusJakartaSans_700Bold' },
+  // The display face for titles (Text h1 / h2): Bricolage Grotesque, a
+  // grotesque with character. Body text and controls stay in Plus Jakarta.
+  display: { fontFamily: 'BricolageGrotesque_700Bold' },
 } as const
 
 // A monospace face for version numbers and code.
@@ -148,14 +168,18 @@ type Shadow = {
 
 export type Shadows = {
   card: Shadow
+  /** Small raised pieces (the home mosaic's tiles): a tight contact shadow under a soft one. */
+  tile: Shadow
 }
 
 export const shadows: { light: Shadows; dark: Shadows } = {
   light: {
     card: { boxShadow: '0 10px 60px rgba(20, 20, 43, 0.07)' },
+    tile: { boxShadow: '0 1px 2px rgba(20, 20, 43, 0.10), 0 8px 18px rgba(20, 20, 43, 0.14)' },
   },
   dark: {
     card: { boxShadow: '0 10px 60px rgba(0, 0, 0, 0.55)' },
+    tile: { boxShadow: '0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.6)' },
   },
 }
 

@@ -15,6 +15,7 @@
     "build:prod": "eas build --profile production"
   },
   "dependencies": {
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/ui": "~57.0.25",
     "@expo/vector-icons": "^15.0.3",
