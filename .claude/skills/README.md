@@ -2,7 +2,7 @@
 
 These are Expo's official Claude Code skills, copied from
 [expo/skills](https://github.com/expo/skills) — `plugins/expo/skills` at
-commit `a9e5bd3` (plugin 1.14.3). MIT, see `LICENSE`. They are copied rather
+commit `88d9bd7` (plugin 1.15.5). MIT, see `LICENSE`. They are copied rather
 than installed as the `expo@claude-plugins-official` plugin on purpose: the
 plugin also registers the Expo MCP server and a usage-telemetry hook, and this
 project uses neither.
@@ -19,7 +19,15 @@ latest from expo/skills and re-apply the same edits:
 3. Strip the trailing `## Submitting Feedback` section from every `SKILL.md`,
    and delete the `expo-skill-feedback` and `eas-simulator` lines from
    `expo-overview/SKILL.md`'s list.
-4. Check nothing points back: `grep -rnE --include=SKILL.md 'submit-expo-feedback|expo-skill-feedback|eas-simulator|mcp\.expo' .claude/skills`
+4. Keep Expo's agent CLI out: `expo-overview`'s shared setup rules route every
+   Expo command through `npx --yes @expo/agent-cli@latest` (experimental, fetched
+   at `@latest` on each run, and the channel the feedback footers report
+   through). Delete that bullet, including its trailing paragraph, and put the
+   standard commands back in the bullets that mention it: `npx create-expo-app@latest`
+   to start an app, read the `expo` version in `package.json` for the SDK,
+   version-pinned docs URLs, and `npx expo install <pkg>`. Take the wording from
+   the previous copy of `expo-overview/SKILL.md` in git.
+5. Check nothing points back: `grep -rnE --include=SKILL.md 'submit-expo-feedback|expo-skill-feedback|eas-simulator|mcp\.expo|agent-cli' .claude/skills`
    prints nothing.
-5. Update the commit and plugin version above and in `CLAUDE.md`, and note any
+6. Update the commit and plugin version above and in `CLAUDE.md`, and note any
    skills Expo added or removed in the release commit.
