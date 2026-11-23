@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, View } from 'react-native'
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -10,6 +10,7 @@ import { ScreenErrorBoundary } from '@/src/components/error'
 import { Button, Text } from '@/src/components/ui'
 import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
+import { errorMessage } from '@/src/lib/feedback'
 import { spacing, type Colors } from '@/src/lib/theme'
 
 const GOOGLE_ICON_SOURCE = require('../../assets/images/google.png')
@@ -63,18 +64,13 @@ function SignInScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
-  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle)
-  const signInWithApple = useAuthStore((state) => state.signInWithApple)
-  const isLoading = useAuthStore((state) => state.isLoading)
+  const signIn = useAuthStore((state) => state.signIn)
 
-  // Alert.alert is a no-op on web, so failures are also shown inline
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // Which provider's sheet is open; every button waits while one is
+  const [pending, setPending] = useState<'google' | 'apple' | null>(null)
 
-  const showError = (title: string, error: unknown) => {
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred'
-    setErrorMessage(message)
-    Alert.alert(title, message)
-  }
+  // Failures show inline, under the buttons, on every platform
+  const [failure, setFailure] = useState<string | null>(null)
 
   const goBack = () => {
     if (router.canGoBack()) {
@@ -84,24 +80,16 @@ function SignInScreen() {
     }
   }
 
-  const onGoogleSignIn = async () => {
-    setErrorMessage(null)
+  // Signed in: the auth layout hands back to Profile. Cancelled: nothing to say.
+  const signInWithProvider = async (provider: 'google' | 'apple') => {
+    setFailure(null)
+    setPending(provider)
     try {
-      await signInWithGoogle()
+      await signIn({ provider })
     } catch (error) {
-      showError('Google Sign In Failed', error)
-    }
-  }
-
-  const onAppleSignIn = async () => {
-    setErrorMessage(null)
-    try {
-      await signInWithApple()
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Sign in was cancelled') {
-        return
-      }
-      showError('Apple Sign In Failed', error)
+      setFailure(errorMessage(error))
+    } finally {
+      setPending(null)
     }
   }
 
@@ -124,8 +112,9 @@ function SignInScreen() {
       >
         <Button
           variant="outline"
-          onPress={onGoogleSignIn}
-          disabled={isLoading}
+          onPress={() => signInWithProvider('google')}
+          disabled={pending !== null}
+          loading={pending === 'google'}
           fullWidth
           size="lg"
           leftIcon={<Image source={GOOGLE_ICON_SOURCE} style={styles.socialIcon} />}
@@ -138,8 +127,9 @@ function SignInScreen() {
         {Platform.OS === 'ios' && (
           <Button
             variant="outline"
-            onPress={onAppleSignIn}
-            disabled={isLoading}
+            onPress={() => signInWithProvider('apple')}
+            disabled={pending !== null}
+            loading={pending === 'apple'}
             fullWidth
             size="lg"
             leftIcon={<Ionicons name="logo-apple" size={18} color={colors.text} />}
@@ -161,7 +151,7 @@ function SignInScreen() {
         <Button
           variant="primary"
           onPress={() => router.push('/(auth)/email-auth')}
-          disabled={isLoading}
+          disabled={pending !== null}
           fullWidth
           size="lg"
           leftIcon={<Ionicons name="mail-outline" size={18} color={colors.background} />}
@@ -171,14 +161,14 @@ function SignInScreen() {
           Continue with Email
         </Button>
 
-        {errorMessage && (
+        {failure && (
           <Text
             variant="bodySmall"
             color="danger"
             style={styles.errorText}
             accessibilityRole="alert"
           >
-            {errorMessage}
+            {failure}
           </Text>
         )}
       </Animated.View>

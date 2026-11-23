@@ -74,20 +74,26 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 │   │   ├── forms/             # Form components (FormInput with react-hook-form)
 │   │   └── error/             # Error boundaries (ErrorBoundary, ScreenErrorBoundary)
 │   ├── features/              # Feature-based modules
-│   │   ├── auth/              # Authentication (stores, hooks)
-│   │   └── profile/           # User profile (hooks)
+│   │   ├── auth/              # Authentication: the auth store + providers/
+│   │   │   ├── providers/     # Sign-in adapters (google, apple, password) → one credential → Supabase; signIn({ provider }) resolves 'signed-in' | 'cancelled'
+│   │   │   └── pendingConfirmation.ts # An email sign-up awaiting its link (confirmation on): in-memory password, tryComplete → 'signed-in' | 'not-yet' | 'lost', resend, abandon
+│   │   ├── notifications/     # Push registration: startPushSync() (root layout) keeps this device's token in step with the session; signOut awaits unregisterPushBeforeSignOut()
+│   │   └── profile/           # Owns the public.users row: useProfile(user) (profile, displayName, rename), seedProfileFromProvider (UPDATE-only)
 │   ├── hooks/                 # Global custom hooks (useColors, useIsDark, useShadows, useTabBarPadding — the tab bar floats, screens pad under it)
 │   ├── lib/                   # Libraries and utilities
 │   │   ├── env.ts             # Env reading + `backendConfigured` (the app runs without a backend)
 │   │   ├── embed.ts           # Web build inside a phone-shaped iframe: `?insets=top,bottom` → safe-area insets; posts the colour scheme to the parent
 │   │   ├── api.ts             # deleteAuthUser — TWO ways, `ACCOUNT_DELETION` picks: the delete_own_account RPC (default; store-ready with no server) or DELETE /auth/users/me on the Python API (the lesson's endpoint); + apiFetch for the Python API
-│   │   ├── notifications.ts   # Push notification utilities
+│   │   ├── notifications.ts   # expo-notifications + the `devices` table (permission, token, save/remove); used by features/notifications
 │   │   ├── notifications.web.ts # Its web twin: no-ops, so expo-notifications never loads in a browser — keep the exports in step
+│   │   ├── feedback.ts        # Action feedback: errorMessage(error), notify(title, message), confirm({…}) → Promise<boolean>. Screens import this, never Alert
+│   │   ├── dialog.ts          # Its phone adapter (Alert) — import feedback.ts, not this
+│   │   ├── dialog.web.ts      # Its web twin: window.alert / window.confirm, since Alert does nothing in a browser — keep the exports in step
 │   │   ├── supabase.ts        # Supabase client configuration
 │   │   ├── queryClient.ts     # TanStack Query configuration
 │   │   ├── theme.ts           # Theme colors, spacing, typography, radii, shadows
 │   │   └── validations/       # Zod validation schemas
-│   ├── stores/                # Global Zustand stores (themeStore, notificationStore)
+│   ├── stores/                # Global Zustand stores (themeStore)
 │   └── types/                 # TypeScript type definitions
 ├── assets/                    # Static assets (images, fonts)
 ├── app.json                   # Expo configuration
@@ -99,7 +105,13 @@ iOS: EAS builds SDK 57 on its `sdk-57` image (Xcode 26.6) by default. Leave `eas
 
 The home tab is public; sign-in lives in the Profile tab. There is no route
 guard — a screen that needs a user checks `useAuthStore().user` itself (see
-`edit-profile.tsx`). The app also boots with no backend configured (the
+`edit-profile.tsx`). Every sign-in method goes through `signIn({ provider })`
+(`'google'`, `'apple'`, or `'password'` with email and password): it resolves
+`'signed-in'` or `'cancelled'` and throws only for real failures. A new
+provider is an adapter in `src/features/auth/providers/`, not a new store
+action. The store keeps no loading flag: each screen tracks its own pending
+state (local state, or `useMutation`), so one button's spinner never shows on
+another. The app also boots with no backend configured (the
 `.env.example` placeholders, or no `.env`): `backendConfigured` in
 `src/lib/env.ts` is false, the Supabase client throws a clear error only when
 first used, and Profile explains that Supabase needs connecting before sign-in.
@@ -107,10 +119,14 @@ first used, and Profile explains that Supabase needs connecting before sign-in.
 **Email confirmation ships OFF** (the API repo's `supabase/config.toml`
 `enable_confirmations = false`, and the hosted project's "Confirm email"
 toggle): sign up, and you're in. The app is nevertheless complete for the day
-it is switched on — nothing here needs changing: `signUp` then returns no
-session, the auth store keeps the password in memory and the sign-up's email
-in `pendingVerificationEmail`, `app/(auth)/verify-email.tsx` waits for the
-link (resend / "I have confirmed" / sign in another way), and the link lands
+it is switched on — nothing here needs changing: `signUp` then resolves
+`'awaiting-confirmation'` instead of `'signed-in'`, and
+`src/features/auth/pendingConfirmation.ts` holds the sign-up (the password in
+memory only, the email readable via `usePendingConfirmationEmail()`).
+`app/(auth)/verify-email.tsx` waits for the link: `tryCompleteConfirmation()`
+resolves `'signed-in'`, `'not-yet'` or `'lost'` (a cold start forgot the
+password: sign in by hand), plus `resendConfirmation()` and
+`abandonConfirmation()` ("sign in another way"). The link lands
 on the links site's `/email-confirmed` page (`EXPO_PUBLIC_LINKS_URL`, see
 `src/lib/links.ts`) — or opens `app/email-confirmed.tsx` on Android, which
 claims the whole links host. Password-reset links go to the same site's
@@ -365,6 +381,7 @@ The following are **NOT ALLOWED** without explicit user approval:
 2. Wrap the screen in `ScreenErrorBoundary`, draw its own `NavBar` (the stock header is off), and add `useTabBarPadding()` to a scrolling screen's bottom padding: the tab bar floats over the content.
 3. Build it from `src/components/ui` and the theme's tokens (`createStyles(colors)` + `useMemo`). Screen-only pieces stay in the screen file.
 4. Give it its loading, empty and error states, and keep it working on the web build (see "Native code means a rebuild" and `.web.ts` twins like `src/lib/notifications.web.ts`).
+5. Report failures, confirm that an action worked, and ask before a destructive one through `src/lib/feedback.ts` (`notify`, `await confirm({ title, message, confirmText, destructive })`, `errorMessage(error)` for whatever a `catch` caught) — never `Alert.alert` directly: it is a no-op on the web build, so the message is lost and a confirmation never resolves. A screen with its own inline notice (sign-in, email-auth) puts `errorMessage(error)` there instead.
 
 ### Applying a design
 
@@ -401,7 +418,7 @@ Use these libraries for their respective purposes. Do not introduce alternative 
 | State Management | `zustand` | Client state, stores in `src/stores/` |
 | Forms | `react-hook-form` + `zod` | Form state + validation schemas in `lib/validations/` |
 | Backend | `@supabase/supabase-js` | Auth, database, configured in `lib/supabase.ts` |
-| Push Notifications | `expo-notifications` | Configured in `lib/notifications.ts` |
+| Push Notifications | `expo-notifications` | Configured in `lib/notifications.ts`; the token's lifecycle is `src/features/notifications` |
 | Icons | `@expo/vector-icons` | Use Ionicons or other included icon sets |
 | Vector Graphics | `react-native-svg` | Gradients and custom shapes |
 | Native controls | `@expo/ui` | SwiftUI / Jetpack Compose controls (switch, slider, pickers, bottom sheet, menus) inside a `Host` — see Native controls above |

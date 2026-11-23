@@ -1,1 +1,1 @@
-export { useAuthStore } from './authStore'
+export { useAuthStore, type SignUpOutcome } from './authStore'

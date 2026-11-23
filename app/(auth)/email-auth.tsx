@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -27,6 +26,7 @@ import { FormInput } from '@/src/components/forms'
 import { Button, Text } from '@/src/components/ui'
 import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
+import { errorMessage, notify } from '@/src/lib/feedback'
 import { borderRadius, spacing, type Colors } from '@/src/lib/theme'
 import {
   forgotPasswordSchema,
@@ -138,7 +138,6 @@ function EmailAuthScreen() {
   const signIn = useAuthStore((state) => state.signIn)
   const signUp = useAuthStore((state) => state.signUp)
   const resetPassword = useAuthStore((state) => state.resetPassword)
-  const isLoading = useAuthStore((state) => state.isLoading)
 
   // 0 = sign in, 1 = sign up; drives the segmented-control thumb
   const tabPosition = useSharedValue(0)
@@ -154,7 +153,7 @@ function EmailAuthScreen() {
     transform: [{ translateX: tabPosition.get() * segmentWidth }],
   }))
 
-  // Alert.alert is a no-op on web, so outcomes are also shown inline
+  // Outcomes show inline, under the form, on every platform
   const [formNotice, setFormNotice] = useState<{
     tone: 'danger' | 'success'
     text: string
@@ -187,33 +186,26 @@ function EmailAuthScreen() {
     }
   }
 
-  const showError = (title: string, error: unknown) => {
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred'
-    setFormNotice({ tone: 'danger', text: message })
-    Alert.alert(title, message)
-  }
-
   const onSignIn = async (data: SignInFormData) => {
     setFormNotice(null)
     try {
-      await signIn(data.email, data.password)
+      await signIn({ provider: 'password', email: data.email, password: data.password })
     } catch (error) {
-      showError('Sign In Failed', error)
+      setFormNotice({ tone: 'danger', text: errorMessage(error) })
     }
   }
 
   const onSignUp = async (data: SignUpFormData) => {
     setFormNotice(null)
     try {
-      await signUp(data.email.trim(), data.password)
-      // Confirmation off (the default): there is a session already and the
-      // auth layout hands back to Profile. Confirmation on: no session yet —
-      // the next screen waits for the link in the email.
-      if (useAuthStore.getState().pendingVerificationEmail) {
+      // Confirmation off (the default): signed in, and the auth layout hands
+      // back to Profile. Confirmation on: the next screen waits for the link.
+      const outcome = await signUp(data.email.trim(), data.password)
+      if (outcome === 'awaiting-confirmation') {
         router.push('/(auth)/verify-email')
       }
     } catch (error) {
-      showError('Sign Up Failed', error)
+      setFormNotice({ tone: 'danger', text: errorMessage(error) })
     }
   }
 
@@ -223,10 +215,7 @@ function EmailAuthScreen() {
       setResetEmail(data.email)
       setResetSent(true)
     } catch (error) {
-      Alert.alert(
-        'Reset Failed',
-        error instanceof Error ? error.message : 'Failed to send reset email'
-      )
+      notify('Reset Failed', errorMessage(error, 'Failed to send reset email'))
     }
   }
 
@@ -268,12 +257,12 @@ function EmailAuthScreen() {
       />
       <Button
         onPress={signInForm.handleSubmit(onSignIn)}
-        loading={isLoading || signInForm.formState.isSubmitting}
+        loading={signInForm.formState.isSubmitting}
         fullWidth
         size="lg"
         accessibilityLabel="Sign in to your account"
       >
-        {isLoading || signInForm.formState.isSubmitting ? 'Signing in...' : 'Sign In'}
+        {signInForm.formState.isSubmitting ? 'Signing in...' : 'Sign In'}
       </Button>
       <Pressable
         style={styles.forgotPassword}
@@ -332,12 +321,12 @@ function EmailAuthScreen() {
       />
       <Button
         onPress={signUpForm.handleSubmit(onSignUp)}
-        loading={isLoading || signUpForm.formState.isSubmitting}
+        loading={signUpForm.formState.isSubmitting}
         fullWidth
         size="lg"
         accessibilityLabel="Create your account"
       >
-        {isLoading || signUpForm.formState.isSubmitting ? 'Creating account...' : 'Sign Up'}
+        {signUpForm.formState.isSubmitting ? 'Creating account...' : 'Sign Up'}
       </Button>
     </View>
   )
@@ -470,10 +459,10 @@ function EmailAuthScreen() {
                 <View style={styles.dialogActions}>
                   <Button
                     onPress={resetForm.handleSubmit(onResetPassword)}
-                    loading={isLoading || resetForm.formState.isSubmitting}
+                    loading={resetForm.formState.isSubmitting}
                     fullWidth
                   >
-                    {isLoading || resetForm.formState.isSubmitting ? 'Sending...' : 'Send Link'}
+                    {resetForm.formState.isSubmitting ? 'Sending...' : 'Send Link'}
                   </Button>
                   <Button onPress={closeResetDialog} variant="ghost" fullWidth>
                     Cancel

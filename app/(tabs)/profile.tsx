@@ -1,6 +1,6 @@
 import Constants from 'expo-constants'
 import { useCallback, useMemo, useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
@@ -10,8 +10,9 @@ import { useColors } from '@/src/hooks/useColors'
 import { useTabBarPadding } from '@/src/hooks/useTabBarPadding'
 import { spacing, type Colors, type ThemeMode } from '@/src/lib/theme'
 import { useAuthStore } from '@/src/features/auth'
-import { useUserProfile } from '@/src/features/profile'
+import { useProfile } from '@/src/features/profile'
 import { backendConfigured } from '@/src/lib/env'
+import { errorMessage, notify } from '@/src/lib/feedback'
 import { useThemeStore } from '@/src/stores/themeStore'
 import { ScreenErrorBoundary } from '@/src/components/error'
 
@@ -61,14 +62,15 @@ const createStyles = (colors: Colors) =>
   })
 
 function ProfileScreen() {
-  const { user, signOut, isLoading } = useAuthStore()
+  const { user, signOut } = useAuthStore()
+  const [signingOut, setSigningOut] = useState(false)
   const router = useRouter()
   const { mode, setMode } = useThemeStore()
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
   const insets = useSafeAreaInsets()
   const tabBarPadding = useTabBarPadding()
-  const { data: profile } = useUserProfile(user?.id)
+  const { profile, displayName } = useProfile(user)
   const [signInNotice, setSignInNotice] = useState<string | null>(null)
 
   const scrollY = useSharedValue(0)
@@ -85,17 +87,16 @@ function ProfileScreen() {
   }, [router])
 
   const handleSignOut = useCallback(async () => {
+    setSigningOut(true)
     try {
       await signOut()
     } catch (error) {
-      Alert.alert(
-        'Sign Out Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      notify('Sign Out Failed', errorMessage(error))
+    } finally {
+      setSigningOut(false)
     }
   }, [signOut])
 
-  const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? null
   const version = Constants.expoConfig?.version ?? '0.0.1'
 
   return (
@@ -171,11 +172,11 @@ function ProfileScreen() {
         {user && (
           <ListGroup>
             <ListRow
-              title={isLoading ? 'Signing out…' : 'Sign out'}
+              title={signingOut ? 'Signing out…' : 'Sign out'}
               tone="danger"
               chevron={false}
               onPress={handleSignOut}
-              disabled={isLoading}
+              disabled={signingOut}
               accessibilityLabel="Sign out of your account"
             />
           </ListGroup>

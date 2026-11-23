@@ -1,13 +1,15 @@
+import { useMutation } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import { Button, Card, Input, Text } from '@/src/components/ui'
 import { ScreenErrorBoundary } from '@/src/components/error'
 import { useAuthStore } from '@/src/features/auth'
-import { useUserProfile, useUpdateUserProfile } from '@/src/features/profile'
+import { useProfile } from '@/src/features/profile'
 import { useColors } from '@/src/hooks/useColors'
 import { useTabBarPadding } from '@/src/hooks/useTabBarPadding'
+import { confirm, errorMessage, notify } from '@/src/lib/feedback'
 import { spacing, type Colors } from '@/src/lib/theme'
 
 const createStyles = (colors: Colors) =>
@@ -47,9 +49,12 @@ const createStyles = (colors: Colors) =>
   })
 
 function EditProfileScreen() {
-  const { user, updatePassword, resetPassword, deleteAccount, isLoading } = useAuthStore()
-  const { data: profile } = useUserProfile(user?.id)
-  const updateProfile = useUpdateUserProfile()
+  const { user, updatePassword, resetPassword, deleteAccount } = useAuthStore()
+  // Each action tracks its own pending state, so one button's label never
+  // changes because another was pressed
+  const passwordUpdate = useMutation({ mutationFn: updatePassword })
+  const accountDeletion = useMutation({ mutationFn: deleteAccount })
+  const { profile, rename, isRenaming } = useProfile(user)
   const colors = useColors()
   const styles = useMemo(() => createStyles(colors), [colors])
   const tabBarPadding = useTabBarPadding()
@@ -70,92 +75,64 @@ function EditProfileScreen() {
   const displayName = displayNameInput ?? profile?.display_name ?? ''
 
   const handleSaveProfile = async () => {
-    if (!user?.id) {
-      Alert.alert('Profile Update Failed', 'No authenticated user found.')
-      return
-    }
-
-    const trimmedName = displayName.trim()
-
     try {
-      await updateProfile.mutateAsync({
-        userId: user.id,
-        updates: {
-          display_name: trimmedName.length > 0 ? trimmedName : null,
-        },
-      })
-      Alert.alert('Profile Updated', 'Your display name has been updated.')
+      await rename(displayName)
+      notify('Profile Updated', 'Your display name has been updated.')
     } catch (error) {
-      Alert.alert(
-        'Profile Update Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      notify('Profile Update Failed', errorMessage(error))
     }
   }
 
   const handleUpdatePassword = async () => {
     if (!newPassword) {
-      Alert.alert('Password Required', 'Enter a new password to continue.')
+      notify('Password Required', 'Enter a new password to continue.')
       return
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Passwords Do Not Match', 'Make sure both password fields match.')
+      notify('Passwords Do Not Match', 'Make sure both password fields match.')
       return
     }
 
     try {
-      await updatePassword(newPassword)
+      await passwordUpdate.mutateAsync(newPassword)
       setNewPassword('')
       setConfirmPassword('')
-      Alert.alert('Password Updated', 'Your password has been updated.')
+      notify('Password Updated', 'Your password has been updated.')
     } catch (error) {
-      Alert.alert(
-        'Password Update Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      notify('Password Update Failed', errorMessage(error))
     }
   }
 
   const handleResetPassword = async () => {
     if (!user?.email) {
-      Alert.alert('Reset Failed', 'No email address found for this account.')
+      notify('Reset Failed', 'No email address found for this account.')
       return
     }
 
     try {
       await resetPassword(user.email)
-      Alert.alert('Reset Email Sent', 'Check your inbox for a password reset link.')
+      notify('Reset Email Sent', 'Check your inbox for a password reset link.')
     } catch (error) {
-      Alert.alert(
-        'Reset Failed',
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      )
+      notify('Reset Failed', errorMessage(error))
     }
   }
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'This will permanently delete your account and all associated data. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteAccount()
-            } catch (error) {
-              Alert.alert(
-                'Delete Account Failed',
-                error instanceof Error ? error.message : 'An unexpected error occurred'
-              )
-            }
-          },
-        },
-      ]
-    )
+  const handleDeleteAccount = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Account',
+      message:
+        'This will permanently delete your account and all associated data. This action cannot be undone.',
+      confirmText: 'Delete',
+      destructive: true,
+    })
+    if (!confirmed) return
+
+    try {
+      await accountDeletion.mutateAsync()
+    } catch (error) {
+      notify('Delete Account Failed', errorMessage(error))
+    }
   }
 
   return (
@@ -170,12 +147,12 @@ function EditProfileScreen() {
           </Text>
           <Button
             onPress={handleSaveProfile}
-            loading={updateProfile.isPending}
+            loading={isRenaming}
             size="sm"
             variant="outline"
             accessibilityLabel="Save display name"
           >
-            {updateProfile.isPending ? 'Saving...' : 'Save'}
+            {isRenaming ? 'Saving...' : 'Save'}
           </Button>
         </View>
         <Input
@@ -195,12 +172,12 @@ function EditProfileScreen() {
           </Text>
           <Button
             onPress={handleUpdatePassword}
-            loading={isLoading}
+            loading={passwordUpdate.isPending}
             size="sm"
             variant="outline"
             accessibilityLabel="Update password"
           >
-            {isLoading ? 'Updating...' : 'Update'}
+            {passwordUpdate.isPending ? 'Updating...' : 'Update'}
           </Button>
         </View>
         <Input
@@ -238,11 +215,11 @@ function EditProfileScreen() {
         <Button
           onPress={handleDeleteAccount}
           variant="danger"
-          loading={isLoading}
+          loading={accountDeletion.isPending}
           size="md"
           accessibilityLabel="Delete your account"
         >
-          {isLoading ? 'Deleting...' : 'Delete Account'}
+          {accountDeletion.isPending ? 'Deleting...' : 'Delete Account'}
         </Button>
       </Card>
     </ScrollView>

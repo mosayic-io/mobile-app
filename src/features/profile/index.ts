@@ -1,7 +1,7 @@
+export { useProfile } from './hooks'
 export {
-  useUserProfile,
-  useUpdateUserProfile,
+  seedProfileFromProvider,
   userKeys,
-  type User,
-  type UserUpdate,
-} from './hooks'
+  type ProfileRow,
+  type ProviderProfile,
+} from './profileRow'

@@ -2,7 +2,8 @@
 // feature, and importing expo-notifications in a browser registers a push
 // token listener that only logs a warning, so on web nothing is imported and
 // every call is a quiet no-op: permission reads as denied and there is never
-// a token, so the notification store never prompts or saves anything.
+// a token, so push registration (src/features/notifications) never prompts
+// or saves anything — and on web it doesn't even start.
 //
 // Metro picks this file over notifications.ts when it builds for web. Keep
 // the exports in step with that file.

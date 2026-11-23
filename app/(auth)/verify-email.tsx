@@ -5,15 +5,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ScreenErrorBoundary } from '@/src/components/error'
 import { Button, Text } from '@/src/components/ui'
-import { useAuthStore } from '@/src/features/auth'
+import {
+  abandonConfirmation,
+  resendConfirmation,
+  tryCompleteConfirmation,
+  usePendingConfirmationEmail,
+} from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
+import { errorMessage } from '@/src/lib/feedback'
 import { spacing, type Colors } from '@/src/lib/theme'
 
 // The waiting state after an email sign-up, only ever reached when email
 // confirmation is switched ON in Supabase (it ships off). The confirmation
 // link opens the links site's /email-confirmed page; when the person comes
 // back here, the app signs them in with the password they signed up with
-// (held in memory by the auth store). A cold start loses that password, and
+// (held in memory by src/features/auth/pendingConfirmation.ts). A cold start loses that password, and
 // then they sign in by hand.
 
 const createStyles = (colors: Colors) =>
@@ -43,10 +49,7 @@ function VerifyEmailScreen() {
   const styles = useMemo(() => createStyles(colors), [colors])
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const email = useAuthStore((state) => state.pendingVerificationEmail)
-  const resendVerification = useAuthStore((state) => state.resendVerification)
-  const completeVerification = useAuthStore((state) => state.completeVerification)
-  const clearPendingVerification = useAuthStore((state) => state.clearPendingVerification)
+  const email = usePendingConfirmationEmail()
   const [notice, setNotice] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null)
   const [sending, setSending] = useState(false)
   const [checking, setChecking] = useState(false)
@@ -55,13 +58,13 @@ function VerifyEmailScreen() {
   // success the auth layout hands back to Profile.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') completeVerification().catch(() => {})
+      if (state === 'active') tryCompleteConfirmation().catch(() => {})
     })
     return () => subscription.remove()
-  }, [completeVerification])
+  }, [])
 
   const signInByHand = () => {
-    clearPendingVerification()
+    abandonConfirmation()
     router.replace('/(auth)/email-auth')
   }
 
@@ -69,10 +72,13 @@ function VerifyEmailScreen() {
     setChecking(true)
     setNotice(null)
     try {
-      if (await completeVerification()) return
+      const outcome = await tryCompleteConfirmation()
       // The password is gone (a cold start) — nothing to sign in with.
-      if (!useAuthStore.getState().pendingVerificationEmail) return signInByHand()
-      setNotice({ tone: 'danger', text: 'Your email is not confirmed yet. Open the link in the email first.' })
+      if (outcome === 'lost') return signInByHand()
+      if (outcome === 'not-yet') {
+        setNotice({ tone: 'danger', text: 'Your email is not confirmed yet. Open the link in the email first.' })
+      }
+      // 'signed-in': the auth layout hands back to Profile.
     } catch {
       signInByHand()
     } finally {
@@ -85,10 +91,10 @@ function VerifyEmailScreen() {
     setSending(true)
     setNotice(null)
     try {
-      await resendVerification(email)
+      await resendConfirmation()
       setNotice({ tone: 'success', text: `We sent another confirmation email to ${email}.` })
     } catch (error) {
-      setNotice({ tone: 'danger', text: error instanceof Error ? error.message : 'Could not send the email again.' })
+      setNotice({ tone: 'danger', text: errorMessage(error, 'Could not send the email again.') })
     } finally {
       setSending(false)
     }

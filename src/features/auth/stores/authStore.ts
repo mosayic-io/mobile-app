@@ -1,47 +1,37 @@
 import { create } from 'zustand'
 import type { Session, User } from '@supabase/supabase-js'
-import { Platform } from 'react-native'
 
 import { backendConfigured } from '@/src/lib/env'
 import { EMAIL_CONFIRMED_URL, RESET_PASSWORD_URL } from '@/src/lib/links'
 import { supabase } from '@/src/lib/supabase'
 import { queryClient } from '@/src/lib/queryClient'
-import { useNotificationStore } from '@/src/stores/notificationStore'
+import { unregisterPushBeforeSignOut } from '@/src/features/notifications'
 import { deleteAuthUser } from '@/src/lib/api'
+
+import { awaitConfirmation } from '../pendingConfirmation'
+import { signInWith, type SignInMethod, type SignInOutcome } from '../providers'
 
 // Email confirmation is OFF by default (the API repo's supabase/config.toml,
 // and the hosted project's "Confirm email" toggle): sign up, and you're in.
-// Everything below still works when it is switched ON — sign-up then returns
-// no session, the app waits on the verify-email screen, and the confirmation
-// link lands on the links site's /email-confirmed page.
-//
-// The password from an email sign-up, held in memory only (never in the
-// store, never on disk) until the address is confirmed, so the verify-email
-// screen can sign the person in without asking for it again. A cold start
-// loses it, and then they sign in by hand.
-let pendingPassword: string | null = null
+// Everything still works when it is switched ON — sign-up then returns no
+// session and 'awaiting-confirmation', and ../pendingConfirmation.ts takes
+// over until the link in the email is opened.
+
+/** Confirmation off: 'signed-in'. Confirmation on: 'awaiting-confirmation' until the link is opened. */
+export type SignUpOutcome = 'signed-in' | 'awaiting-confirmation'
 
 type AuthState = {
   session: Session | null
   user: User | null
-  isLoading: boolean
   isInitialized: boolean
   initError: Error | null
-  /** Set after an email sign-up while the address is still unconfirmed. */
-  pendingVerificationEmail: string | null
 }
 
 type AuthActions = {
   initialize: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<void>
-  signInWithGoogle: () => Promise<void>
-  signInWithApple: () => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
-  /** Sends the confirmation email again (only meaningful while confirmation is on). */
-  resendVerification: (email: string) => Promise<void>
-  /** Signs in with the sign-up's password; false while the email is still unconfirmed or the password is gone. */
-  completeVerification: () => Promise<boolean>
-  clearPendingVerification: () => void
+  /** Google, Apple or email + password; 'cancelled' when the person backs out of the provider's sheet. */
+  signIn: (method: SignInMethod) => Promise<SignInOutcome>
+  signUp: (email: string, password: string) => Promise<SignUpOutcome>
   signOut: () => Promise<void>
   deleteAccount: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
@@ -54,10 +44,8 @@ type AuthStore = AuthState & AuthActions
 export const useAuthStore = create<AuthStore>((set, get) => ({
   session: null,
   user: null,
-  isLoading: false,
   isInitialized: false,
   initError: null,
-  pendingVerificationEmail: null,
 
   setupAuthListener: () => {
     // No backend yet: nothing to listen to (see src/lib/env.ts, "unconfigured mode")
@@ -70,11 +58,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         session,
         user: session?.user ?? null,
       })
-
-      // Ensure push token stays in sync when auth state changes
-      if (session?.user?.id) {
-        void useNotificationStore.getState().ensureToken(session.user.id)
-      }
     })
 
     return () => {
@@ -102,8 +85,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { data, error } = await supabase.auth.getSession()
       if (error) throw error
 
-      const session = data.session
-      const user = session?.user ?? null
+      const user = data.session?.user ?? null
 
       set({
         session: data.session,
@@ -111,11 +93,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isInitialized: true,
         initError: null,
       })
-
-      // Ensure push token is registered for returning users (cold start)
-      if (session?.user?.id) {
-        void useNotificationStore.getState().ensureToken(session.user.id)
-      }
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Auth initialization failed')
       console.error('Auth initialization failed:', authError)
@@ -126,170 +103,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  signIn: async (email: string, password: string) => {
-    set({ isLoading: true })
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-
-      // Only a session can save a token: no session yet (e.g. email confirmation
-      // pending) means nothing is registered until the user actually signs in.
-      const userId = data.session?.user.id
-      if (userId) {
-        await useNotificationStore.getState().registerAndSaveToken(userId)
-      }
-    } catch (error) {
-      const authError = error instanceof Error ? error : new Error('Sign in failed')
-      throw authError
-    } finally {
-      set({ isLoading: false })
-    }
-  },
-
-  signInWithGoogle: async () => {
-    set({ isLoading: true })
-
-    try {
-      // Dynamically import GoogleSignin to avoid crashing in Expo Go
-      const { GoogleSignin } = await import('@react-native-google-signin/google-signin')
-
-      // Configure GoogleSignin (safe to call multiple times)
-      GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        iosClientId: Platform.OS === 'ios' ? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID : undefined,
-      })
-
-      // Check for Play Services (Android) or just proceed (iOS)
-      await GoogleSignin.hasPlayServices()
-
-      // Trigger the native Google Sign-In flow
-      const response = await GoogleSignin.signIn()
-
-      if (!response.data?.idToken) {
-        throw new Error('No ID token received from Google')
-      }
-
-      // Exchange the Google ID token for a Supabase session
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: response.data.idToken,
-      })
-
-      if (error) throw error
-
-      // Only a session can save a token: no session yet (e.g. email confirmation
-      // pending) means nothing is registered until the user actually signs in.
-      const userId = data.session?.user.id
-      if (userId) {
-        const profileName =
-          response.data.user?.name ??
-          [response.data.user?.givenName, response.data.user?.familyName]
-            .filter(Boolean)
-            .join(' ')
-            .trim()
-        const normalizedName = profileName && profileName.length > 0 ? profileName : null
-        const profilePhoto = response.data.user?.photo ?? null
-        const profileEmail = response.data.user?.email ?? data.user?.email ?? null
-
-        try {
-          if (normalizedName || profilePhoto) {
-            await supabase.auth.updateUser({
-              data: {
-                full_name: normalizedName,
-                avatar_url: profilePhoto,
-              },
-            })
-          }
-
-          // An UPDATE, never an upsert: the row already exists (the
-          // on_auth_user_created trigger makes it at sign-up), and signed-in
-          // users have no INSERT on public.users, which an upsert needs even
-          // when the row is there ("permission denied for table users").
-          const profileUpdate: { display_name?: string | null; photo_url?: string | null; email?: string | null } = {}
-
-          if (normalizedName) profileUpdate.display_name = normalizedName
-          if (profilePhoto) profileUpdate.photo_url = profilePhoto
-          if (profileEmail) profileUpdate.email = profileEmail
-
-          if (Object.keys(profileUpdate).length > 0) {
-            const { error: profileWriteError } = await supabase.from('users').update(profileUpdate).eq('id', userId)
-            if (profileWriteError) throw profileWriteError
-          }
-        } catch (profileError) {
-          console.warn('Failed to update Google profile details:', profileError)
-        }
-
-        await useNotificationStore.getState().registerAndSaveToken(userId)
-      }
-    } catch (error) {
-      const authError = error instanceof Error ? error : new Error('Google sign in failed')
-      throw authError
-    } finally {
-      set({ isLoading: false })
-    }
-  },
-
-  signInWithApple: async () => {
-    if (Platform.OS !== 'ios') {
-      throw new Error('Apple Sign-In is only available on iOS')
-    }
-
-    set({ isLoading: true })
-
-    try {
-      const AppleAuthentication = await import('expo-apple-authentication')
-
-      // Check if Apple Sign-In is available on this device
-      const isAvailable = await AppleAuthentication.isAvailableAsync()
-      if (!isAvailable) {
-        throw new Error('Apple Sign-In is not available on this device')
-      }
-
-      // Request credentials from Apple
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        ],
-      })
-
-      if (!credential.identityToken) {
-        throw new Error('No identity token received from Apple')
-      }
-
-      // Exchange the Apple identity token for a Supabase session
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
-        token: credential.identityToken,
-      })
-
-      if (error) throw error
-
-      // Only a session can save a token: no session yet (e.g. email confirmation
-      // pending) means nothing is registered until the user actually signs in.
-      const userId = data.session?.user.id
-      if (userId) {
-        await useNotificationStore.getState().registerAndSaveToken(userId)
-      }
-    } catch (error) {
-      // Handle user cancellation gracefully
-      if (error && typeof error === 'object' && 'code' in error) {
-        const appleError = error as { code: string }
-        if (appleError.code === 'ERR_REQUEST_CANCELED') {
-          throw new Error('Sign in was cancelled')
-        }
-      }
-      const authError = error instanceof Error ? error : new Error('Apple sign in failed')
-      throw authError
-    } finally {
-      set({ isLoading: false })
-    }
-  },
+  signIn: (method) => signInWith(method),
 
   signUp: async (email: string, password: string) => {
-    set({ isLoading: true })
-
     try {
       const cleanEmail = email.trim().toLowerCase()
       const { data, error } = await supabase.auth.signUp({
@@ -301,84 +117,37 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       })
       if (error) throw error
 
-      // Only a session can save a token: no session yet (e.g. email confirmation
-      // pending) means nothing is registered until the user actually signs in.
-      const userId = data.session?.user.id
-      if (userId) {
-        await useNotificationStore.getState().registerAndSaveToken(userId)
-      } else {
-        // Confirmation is on: no session until the link in the email is
-        // opened. The verify-email screen takes it from here.
-        pendingPassword = password
-        set({ pendingVerificationEmail: cleanEmail })
-      }
+      if (data.session) return 'signed-in'
+
+      // Confirmation is on: no session until the link in the email is opened.
+      awaitConfirmation(cleanEmail, password)
+      return 'awaiting-confirmation'
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Sign up failed')
       throw authError
-    } finally {
-      set({ isLoading: false })
     }
-  },
-
-  resendVerification: async (email: string) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-      options: EMAIL_CONFIRMED_URL ? { emailRedirectTo: EMAIL_CONFIRMED_URL } : undefined,
-    })
-    if (error) throw error
-  },
-
-  completeVerification: async () => {
-    const email = get().pendingVerificationEmail
-    if (!email || !pendingPassword) return false
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pendingPassword })
-    if (error?.code === 'email_not_confirmed') return false
-    if (error) throw error
-    get().clearPendingVerification()
-    const userId = data.session?.user.id
-    if (userId) {
-      await useNotificationStore.getState().registerAndSaveToken(userId)
-    }
-    return true
-  },
-
-  clearPendingVerification: () => {
-    pendingPassword = null
-    set({ pendingVerificationEmail: null })
   },
 
   signOut: async () => {
     // Nothing to sign out of
     if (!get().session) return
 
-    set({ isLoading: true })
-
     try {
-      const userId = get().user?.id
-
-      if (userId) {
-        await useNotificationStore.getState().removeToken(userId)
-      }
+      // Before the session goes: removing this device's push row needs the JWT
+      await unregisterPushBeforeSignOut()
 
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-
-      useNotificationStore.getState().clearToken()
 
       // Clear any user-specific client state after sign out
       queryClient.clear()
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Sign out failed')
       throw authError
-    } finally {
-      set({ isLoading: false })
     }
   },
 
   deleteAccount: async () => {
-    set({ isLoading: true })
-
     try {
       await deleteAuthUser()
 
@@ -390,21 +159,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         console.warn('Failed to sign out after account deletion:', signOutError)
       }
 
-      useNotificationStore.getState().clearToken()
+      // The local push token is forgotten by the SIGNED_OUT that signOut emits
+      // (src/features/notifications); the device row went with the user.
       queryClient.clear()
 
       set({ session: null, user: null })
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Account deletion failed')
       throw authError
-    } finally {
-      set({ isLoading: false })
     }
   },
 
   resetPassword: async (email: string) => {
-    set({ isLoading: true })
-
     try {
       // The reset link lands on the links site's form when there is one;
       // otherwise Supabase falls back to the project's Site URL.
@@ -416,22 +182,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Password reset failed')
       throw authError
-    } finally {
-      set({ isLoading: false })
     }
   },
 
   updatePassword: async (password: string) => {
-    set({ isLoading: true })
-
     try {
       const { error } = await supabase.auth.updateUser({ password })
       if (error) throw error
     } catch (error) {
       const authError = error instanceof Error ? error : new Error('Password update failed')
       throw authError
-    } finally {
-      set({ isLoading: false })
     }
   },
 }))

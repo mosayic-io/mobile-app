@@ -2,14 +2,7 @@ import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo, type PropsWithChildren } from 'react'
-import {
-  AppState,
-  type AppStateStatus,
-  Platform,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from 'react-native'
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import {
   PlusJakartaSans_400Regular,
@@ -26,10 +19,10 @@ import { useAuthStore } from '@/src/features/auth'
 import { useColors } from '@/src/hooks/useColors'
 import { ErrorBoundary } from '@/src/components/error'
 import { Button, Text } from '@/src/components/ui'
-import { useNotificationStore, useThemeHydration } from '@/src/stores'
+import { startPushSync } from '@/src/features/notifications'
+import { useThemeHydration } from '@/src/stores'
 import { spacing } from '@/src/lib/theme'
 import { embedInsets, isEmbedded, useEmbedThemeBridge } from '@/src/lib/embed'
-import { addPushTokenChangeListener } from '@/src/lib/notifications'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -110,12 +103,10 @@ function InitializationError({
 
 function RootLayoutNav() {
   useEmbedThemeBridge()
-  const session = useAuthStore((state) => state.session)
   const isInitialized = useAuthStore((state) => state.isInitialized)
   const initError = useAuthStore((state) => state.initError)
   const initialize = useAuthStore((state) => state.initialize)
   const setupAuthListener = useAuthStore((state) => state.setupAuthListener)
-  const ensureToken = useNotificationStore((state) => state.ensureToken)
   const themeHydrated = useThemeHydration()
   // The typeface (src/lib/theme.ts → typeface). A font that fails to load
   // falls back to the system font rather than holding the app hostage.
@@ -137,28 +128,9 @@ function RootLayoutNav() {
     initialize()
   }, [initialize])
 
-  // Re-save the push token (signed-in users only) each time the app returns to
-  // the foreground, and whenever the OS rotates it
-  useEffect(() => {
-    if (!session?.user?.id) return
-
-    const userId = session.user.id
-
-    const handleAppStateChange = (state: AppStateStatus) => {
-      if (state === 'active') {
-        void ensureToken(userId)
-      }
-    }
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange)
-    // The OS rotated this device's push token while the app was running
-    const tokenSubscription = Platform.OS === 'web' ? null : addPushTokenChangeListener(() => void ensureToken(userId))
-
-    return () => {
-      subscription.remove()
-      tokenSubscription?.remove()
-    }
-  }, [ensureToken, session?.user?.id])
+  // Keep this device's push token in step with the session (sign-in, cold
+  // start, foreground, token rotation); see src/features/notifications
+  useEffect(() => startPushSync(), [])
 
   const isReady = isInitialized && themeHydrated && (fontsLoaded || fontError !== null)
 
