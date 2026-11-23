@@ -31,8 +31,23 @@ export function awaitConfirmation(email: string, password: string): void {
   usePendingEmailStore.setState({ email })
 }
 
-/** Signs in with the sign-up's password. Throws only on real failures. */
-export async function tryCompleteConfirmation(): Promise<ConfirmationOutcome> {
+// One attempt at a time. The verify-email screen retries on returning to the
+// foreground and also has an "I have confirmed" button; when both fire
+// together they share one attempt, so the second can't see the first's
+// cleared state, report 'lost' and send a signed-in person back to sign-in.
+let attemptInFlight: Promise<ConfirmationOutcome> | null = null
+
+/** Signs in with the sign-up's password. Throws only on real failures. Concurrent calls share one attempt. */
+export function tryCompleteConfirmation(): Promise<ConfirmationOutcome> {
+  if (!attemptInFlight) {
+    attemptInFlight = attemptCompletion().finally(() => {
+      attemptInFlight = null
+    })
+  }
+  return attemptInFlight
+}
+
+async function attemptCompletion(): Promise<ConfirmationOutcome> {
   const email = usePendingEmailStore.getState().email
   const password = pendingPassword
   if (!email || !password) return 'lost'

@@ -145,7 +145,11 @@ A development build is compiled once per device and then only `npm start` is nee
 
 ## Before you call a change done
 
-`npm run typecheck` (`tsc --noEmit`) passes and `npm run lint` is clean. A screen that doesn't compile is not a feature.
+`npm run typecheck` (`tsc --noEmit`) passes, `npm run lint` is clean and `npm test` is green. A screen that doesn't compile is not a feature.
+
+### Tests
+
+Jest with the `jest-expo` preset (config in `package.json`, native-module mocks in `jest.setup.js`). Tests sit next to the module they cover, in `__tests__/` (`src/features/auth/__tests__/pendingConfirmation.test.ts`), and test it through its interface: mock what sits behind the seam (`@/src/lib/supabase`, `@/src/lib/notifications`), never the module's own internals. A module that keeps state at module level (push registration) is loaded fresh per test with `jest.resetModules()`. Test the rules that would break quietly — outcomes, ordering, what is never written — not the screens' layout. Never put tests under `app/`: Expo Router treats every file there as a route.
 
 ## Supabase Backend & Migrations
 
